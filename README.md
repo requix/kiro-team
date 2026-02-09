@@ -163,7 +163,7 @@ If validation fails, the team lead can re-deploy a builder to fix issues.
 │  │  └─────────────┘                      │               │  │
 │  │                                       ▼               │  │
 │  │  ┌─────────────┐              ┌──────────────┐        │  │
-│  │  │ Team Lead   │◄─────────── │ specs/*.md    │        │  │
+│  │  │ Team Lead   │◄──────────── │ specs/*.md   │        │  │
 │  │  │ Agent       │              └──────────────┘        │  │
 │  │  └──────┬──────┘                                      │  │
 │  │         │ subagent tool                               │  │
@@ -184,7 +184,6 @@ If validation fails, the team lead can re-deploy a builder to fix issues.
 │  ┌───────────────────────────────────────────────────────┐  │
 │  │              Subagent Tool Availability               │  │
 │  │  ✅ read │ ✅ write │ ✅ shell │ ✅ MCP tools        │  │
-│  │  ❌ grep │ ❌ glob  │ ❌ todo  │ ❌ aws │ ❌ web_search    │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
@@ -219,8 +218,8 @@ Each agent is defined by a JSON config + a markdown prompt:
 ```json
 {
   "name": "team-lead",
-  "tools": ["read", "subagent"],
-  "allowedTools": ["read", "subagent"],
+  "tools": ["read", "subagent", "todo"],
+  "allowedTools": ["read", "subagent", "todo"],
   "toolsSettings": {
     "subagent": {
       "trustedAgents": ["builder", "validator"]
@@ -233,23 +232,23 @@ Each agent is defined by a JSON config + a markdown prompt:
 Key points:
 - Has `subagent` tool to spawn builders and validators
 - Does NOT have `write` or `shell` — cannot modify files directly
+- Can use `todo` tool for task tracking (experimental, enable separately)
 - `trustedAgents` allows spawning without permission prompts each time
-- Can optionally use `todo` tool for task tracking (experimental, enable separately)
+
 
 **builder.json** — the implementer:
 ```json
 {
   "name": "builder",
   "tools": ["read", "write", "shell"],
-  "allowedTools": ["read"],
+  "allowedTools": ["read", "write", "shell"],
   "model": "claude-sonnet-4"
 }
 ```
 
 Key points:
-- Has `write` and `shell` — can create/modify files and run commands
+- Has `read`,`write` and `shell` — can create/modify files and run commands
 - Does NOT have `subagent` — cannot spawn other agents
-- Only `read`, `write`, `shell` are available in subagent runtime (grep, glob, etc. are not)
 
 **validator.json** — the verifier:
 ```json
@@ -290,7 +289,7 @@ Validator:  read, shell (read-only)
 | [Custom Agents](https://kiro.dev/docs/cli/custom-agents) | Define team-lead, builder, validator with specific tools |
 | [Subagents](https://kiro.dev/docs/cli/chat/subagents) | Team lead spawns builders/validators as child agents |
 | [Prompts](https://kiro.dev/docs/cli/chat/manage-prompts) | `@plan-with-team` reusable planning template |
-| [TODO Lists](https://kiro.dev/docs/cli/experimental/todo-lists) ⚠️ | Team-lead tracks task progress (not accessible to subagents) |
+| [TODO Lists](https://kiro.dev/docs/cli/experimental/todo-lists) | Team-lead tracks task progress (not accessible to subagents) |
 
 ## Walkthrough: Building a Calculator API
 
@@ -351,10 +350,9 @@ Build a simple REST API with endpoints for basic arithmetic operations.
 - Checks: Files exist, server starts, endpoints respond
 ```
 
-### Step 2: Review and Execute
+### Step 2: Execute the plan
 
 ```bash
-> /read specs/calculator-api.md    # review the plan
 > /agent swap                      # select: team-lead
 > Execute the plan in specs/calculator-api.md
 ```
