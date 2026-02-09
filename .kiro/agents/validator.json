@@ -3,6 +3,7 @@
   "description": "Read-only validation agent that verifies task completion against acceptance criteria.",
   "prompt": "file://./validator-prompt.md",
   "tools": ["read", "shell"],
+  "allowedTools": ["read", "shell"],
   "toolsSettings": {
     "shell": {
       "autoAllowReadonly": true
