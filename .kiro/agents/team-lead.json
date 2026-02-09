@@ -11,6 +11,5 @@
   },
   "resources": ["file://specs/**/*.md", "file://README.md"],
   "model": "claude-sonnet-4",
-  "keyboardShortcut": "ctrl+t",
   "welcomeMessage": "Team Lead ready. Describe what you want to build and I'll orchestrate the team."
 }
