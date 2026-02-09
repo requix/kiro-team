@@ -1,0 +1,16 @@
+{
+  "name": "team-lead",
+  "description": "Team orchestrator that creates plans and delegates work to specialized subagents (builder, validator).",
+  "prompt": "file://./team-lead-prompt.md",
+  "tools": ["read", "subagent", "todo"],
+  "allowedTools": ["read", "subagent", "todo"],
+  "toolsSettings": {
+    "subagent": {
+      "trustedAgents": ["builder", "validator"]
+    }
+  },
+  "resources": ["file://specs/**/*.md", "file://README.md"],
+  "model": "claude-sonnet-4",
+  "keyboardShortcut": "ctrl+t",
+  "welcomeMessage": "Team Lead ready. Describe what you want to build and I'll orchestrate the team."
+}
