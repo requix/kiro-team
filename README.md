@@ -8,31 +8,36 @@ A team-lead agent reads a plan, delegates tasks to specialized subagents (builde
 
 ```
 You ──→ @plan-with-team
-              │
+                │
         Agent asks: "What do you want to build?"
-              │
+                │
 You ──→ "Build a REST API..."
-              │
-              ▼
-        ┌────────────┐
-        │ Plan saved │  specs/rest-api.md
-        └─────┬──────┘
-              │
-              ▼
-        ┌────────────┐
-        │ Team Lead  │  reads plan, delegates, tracks progress
-        └─────┬──────┘
-              │
-         ┌────┴────┐
-         ▼         ▼
-    ┌─────────┐ ┌─────────┐
-    │ Builder │ │ Builder │  write code (up to 4 in parallel)
-    └────┬────┘ └────┬────┘
-         └─────┬─────┘
+                │
+                ▼
+          ┌────────────┐
+          │ Plan saved │  specs/rest-api.md
+          └─────┬──────┘
+                │
+                ▼
+        ┌───────────────┐
+        │   Team Lead   │  reads plan, delegates, tracks progress
+        └───────┬───────┘
+                │
+          ┌─────┴─────┐
+          ▼           ▼
+    ┌──────────┐ ┌──────────┐
+    │  Builder │ │  Builder │  write code (up to 4 in parallel)
+    └─────┬────┘ └─────┬────┘
+          │            │
+          ▼            ▼
+   ┌───────────┐ ┌───────────┐
+   │ Validator │ │ Validator │  verify each task immediately
+   └────┬──────┘ └─────┬─────┘
+        └──────┬───────┘
                ▼
-        ┌────────────┐
-        │ Validator  │  verify everything works
-        └────────────┘
+         ┌────────────┐
+         │ Validator  │  final end-to-end verification
+         └────────────┘
 ```
 
 Three agent roles, clear separation of concerns:
@@ -133,20 +138,30 @@ Execute the plan in specs/user-auth-jwt.md
 The team lead:
 1. Reads the plan
 2. Creates a TODO list from the tasks
-3. Spawns builder subagents for implementation (parallel when tasks are independent)
-4. Receives results and updates TODO status
-5. Spawns validator subagent to verify the work
-6. Reports results
+3. Spawns builder subagent for a task
+4. Immediately spawns validator subagent to verify that task
+5. If validation passes, marks task complete and proceeds to next task
+6. If validation fails, spawns builder again to fix issues
+7. After all tasks complete, spawns validator for final end-to-end verification
+8. Reports results
 
 ### Phase 3: Validation
 
-The validator agent runs read-only checks:
-- Verifies files exist
-- Runs test commands
-- Checks acceptance criteria
-- Reports pass/fail with details
+The validator agent runs after each builder task AND at the end:
 
-If validation fails, the team lead can re-deploy a builder to fix issues.
+**Incremental validation (after each task):**
+- Verifies the specific task output
+- Runs relevant checks for that component
+- Reports pass/fail immediately
+- Enables fast feedback and early bug detection
+
+**Final validation (after all tasks):**
+- Verifies integration between all components
+- Runs end-to-end tests
+- Checks overall acceptance criteria
+- Reports comprehensive pass/fail
+
+If any validation fails, the team lead re-deploys a builder to fix issues, then re-validates.
 
 ## Architecture
 
@@ -368,18 +383,27 @@ team-lead reads specs/calculator-api.md
     │       └─→ creates package.json, runs npm install
     │       └─→ reports back to team-lead
     │
+    ├─→ subagent(validator): "Verify package.json and dependencies installed"
+    │       └─→ checks files, reports: "✅ PASS"
+    │
     ├─→ team-lead marks task 1 complete, dispatches next
     │
     ├─→ subagent(builder): "Create calculator routes with validation"
     │       └─→ creates src/routes/calculator.js
     │       └─→ reports back to team-lead
     │
+    ├─→ subagent(validator): "Verify routes file structure and exports"
+    │       └─→ checks code, reports: "✅ PASS"
+    │
     ├─→ subagent(builder): "Create Express server entry point"
     │       └─→ creates src/index.js
     │       └─→ reports back to team-lead
     │
-    └─→ subagent(validator): "Verify all files exist and server starts"
-            └─→ reads all files, runs node src/index.js
+    ├─→ subagent(validator): "Verify server file and imports"
+    │       └─→ checks code, reports: "✅ PASS"
+    │
+    └─→ subagent(validator): "Final validation — verify server starts and endpoints work"
+            └─→ runs node src/index.js, tests endpoints
             └─→ reports: "✅ PASS. All checks passed."
 ```
 
