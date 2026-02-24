@@ -1,0 +1,41 @@
+[
+  {
+    "session_id": "ffa06a64-0ada-4f22-b131-bcc16eeab2c4",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/ffa06a64-0ada-4f22-b131-bcc16eeab2c4.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git diff HEAD",
+      "description": "Show all changes since last commit"
+    },
+    "tool_use_id": "tooluse_9QE04tuCvHUNSv20MCbpOF"
+  },
+  {
+    "session_id": "ffa06a64-0ada-4f22-b131-bcc16eeab2c4",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/ffa06a64-0ada-4f22-b131-bcc16eeab2c4.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git status && git diff HEAD",
+      "description": "Check git status and diff"
+    },
+    "tool_use_id": "tooluse_k7AoUYqruKPncC4kBSHuUH"
+  },
+  {
+    "session_id": "ffa06a64-0ada-4f22-b131-bcc16eeab2c4",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/ffa06a64-0ada-4f22-b131-bcc16eeab2c4.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git restore --staged .claude/ logs/ specs/ && git status",
+      "description": "Unstage ADW internal artifacts"
+    },
+    "tool_use_id": "tooluse_cPQzMvNfzN4hw7aD5K6GRK"
+  }
+]
