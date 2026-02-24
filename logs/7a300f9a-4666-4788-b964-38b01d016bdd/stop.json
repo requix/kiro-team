@@ -1,0 +1,10 @@
+[
+  {
+    "session_id": "7a300f9a-4666-4788-b964-38b01d016bdd",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/7a300f9a-4666-4788-b964-38b01d016bdd.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "Stop",
+    "stop_hook_active": false
+  }
+]

@@ -17,3 +17,9 @@ This prompt helps you determine what documentation you should read based on the 
     - When operating on anything under .kiro/prompts
     - When first understanding the project structure
     - When you want to learn how agents are configured and how they interact
+
+- app_docs/feature-1d7283ec-documenter-agent.md
+  - Conditions:
+    - When working with the documenter agent
+    - When implementing or modifying the documentation step in the team workflow
+    - When troubleshooting docs generation after final validation
