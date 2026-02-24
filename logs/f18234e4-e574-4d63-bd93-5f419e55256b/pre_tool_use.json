@@ -1,0 +1,67 @@
+[
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "python3 -m json.tool .kiro/agents/team-lead.json > /dev/null && python3 -m json.tool .kiro/agents/builder.json > /dev/null && python3 -m json.tool .kiro/agents/validator.json > /dev/null && echo \"PASS\" || echo \"FAIL\"",
+      "description": "Validate agent config JSON files"
+    },
+    "tool_use_id": "tooluse_8Uo1VY49kg6HaBlXyQtvRV"
+  },
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "for f in .kiro/agents/team-lead.json .kiro/agents/builder.json .kiro/agents/validator.json .kiro/prompts/plan-with-team.md; do test -s \"$f\" || { echo \"Missing or empty: $f\"; exit 1; }; done && echo \"All prompt files present and non-empty\"",
+      "description": "Check prompt files exist and are non-empty"
+    },
+    "tool_use_id": "tooluse_5pQR8vygdBoOSjfprKDg36"
+  },
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "python3 -c \"import json, sys; [json.load(open(f)) for f in ['.kiro/agents/team-lead.json', '.kiro/agents/builder.json', '.kiro/agents/validator.json']]; print('Schema OK')\" 2>&1 || echo \"Schema validation failed\"",
+      "description": "Validate agent config schema"
+    },
+    "tool_use_id": "tooluse_C3J30b6N6amUq6XNb64e5u"
+  },
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "test -f ~/.local/share/kiro-cli/data.sqlite3 && echo \"Kiro-CLI auth database found\" || echo \"Kiro-CLI auth database not found\"",
+      "description": "Check kiro-cli auth database"
+    },
+    "tool_use_id": "tooluse_1tYP809guAAhyWBzcvMjXs"
+  },
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "kiro-cli --version",
+      "description": "Check kiro-cli version"
+    },
+    "tool_use_id": "tooluse_tQez5lVbLqqt6Ez77PeZQH"
+  }
+]

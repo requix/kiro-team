@@ -1,0 +1,10 @@
+[
+  {
+    "session_id": "f18234e4-e574-4d63-bd93-5f419e55256b",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/f18234e4-e574-4d63-bd93-5f419e55256b.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "UserPromptSubmit",
+    "prompt": "/test "
+  }
+]
