@@ -1,0 +1,14 @@
+{
+  "name": "documenter",
+  "description": "Generates documentation for completed, validated features. Reads implemented files and writes a docs/<feature>.md artifact.",
+  "prompt": "file://./documenter-prompt.md",
+  "tools": ["read", "write", "shell"],
+  "allowedTools": ["read", "write", "shell"],
+  "toolsSettings": {
+    "shell": {
+      "autoAllowReadonly": true
+    }
+  },
+  "model": "claude-sonnet-4",
+  "welcomeMessage": "Documenter ready. Tell me which feature to document and which files were changed."
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "session_id": "417f54fb-eab5-4651-9d81-38fa7f6d57ad",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/417f54fb-eab5-4651-9d81-38fa7f6d57ad.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git diff HEAD",
+      "description": "Show all changes since last commit"
+    },
+    "tool_use_id": "tooluse_udzyDQfKEhgqeEUrIaPerl"
+  },
+  {
+    "session_id": "417f54fb-eab5-4651-9d81-38fa7f6d57ad",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/417f54fb-eab5-4651-9d81-38fa7f6d57ad.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git add -A && git commit -m \"$(cat <<'EOF'\nsdlc_implementor: feature: add documenter agent to team workflow\nEOF\n)\"",
+      "description": "Stage all changes and create commit"
+    },
+    "tool_use_id": "tooluse_5JdfNQCVr3DXPL6f3F21pm"
+  }
+]

@@ -37,16 +37,21 @@ You ──→ "Build a REST API..."
                ▼
          ┌────────────┐
          │ Validator  │  final end-to-end verification
-         └────────────┘
+         └─────┬──────┘
+               ▼
+        ┌────────────┐
+        │ Documenter │  generate docs for the completed feature
+        └────────────┘
 ```
 
-Three agent roles, clear separation of concerns:
+Four agent roles, clear separation of concerns:
 
 | Agent | Can Do | Cannot Do |
 |-------|--------|-----------|
 | **Team Lead** | Read code, delegate tasks, track TODO list | Write code |
 | **Builder** | Write code, create files, run commands | Spawn other agents |
 | **Validator** | Read files, run tests, inspect output | Modify anything |
+| **Documenter** | Read files, write docs to `docs/` | Modify implementation files |
 
 ## How Task Coordination Works
 
@@ -163,6 +168,15 @@ The validator agent runs after each builder task AND at the end:
 
 If any validation fails, the team lead re-deploys a builder to fix issues, then re-validates.
 
+### Phase 4: Documentation
+
+After the final validator reports ✅ PASS, the team lead spawns the documenter agent:
+
+- Reads all implemented files
+- Inspects actual function signatures, exports, and APIs
+- Writes `docs/<feature-name>.md` with overview, file structure, public API, usage examples, and notes
+- Documentation failure is non-blocking — the workflow completes even if the documenter fails
+
 ## Architecture
 
 ```
@@ -193,7 +207,13 @@ If any validation fails, the team lead re-deploys a builder to fix issues, then 
 │  │  ┌───────┐ ┌───────┐     ┌───────────┐                │  │
 │  │  │Builder│ │Builder│     │ Validator │                │  │
 │  │  │Agent  │ │Agent  │     │ Agent     │                │  │
-│  │  └───────┘ └───────┘     └───────────┘                │  │
+│  │  └───────┘ └───────┘     └─────┬─────┘               │  │
+│  │                                │                      │  │
+│  │                                ▼                      │  │
+│  │                         ┌────────────┐                │  │
+│  │                         │ Documenter │                │  │
+│  │                         │ Agent      │                │  │
+│  │                         └────────────┘                │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
@@ -218,7 +238,9 @@ If any validation fails, the team lead re-deploys a builder to fix issues, then 
 │   ├── builder.json            ← Builder config
 │   ├── builder-prompt.md       ← Builder behavior
 │   ├── validator.json          ← Validator config
-│   └── validator-prompt.md     ← Validator behavior
+│   ├── validator-prompt.md     ← Validator behavior
+│   ├── documenter.json         ← Documenter config
+│   └── documenter-prompt.md    ← Documenter behavior
 └── prompts/
     └── plan-with-team.md       ← Planning prompt (invoked with @)
 ```
@@ -282,6 +304,24 @@ Key points:
 - Does NOT have `write` — cannot change files
 - Shell is auto-allowed for read-only commands
 
+**documenter.json** — the documentation writer:
+```json
+{
+  "name": "documenter",
+  "tools": ["read", "write", "shell"],
+  "allowedTools": ["read", "write", "shell"],
+  "toolsSettings": {
+    "shell": { "autoAllowReadonly": true }
+  },
+  "model": "claude-sonnet-4"
+}
+```
+
+Key points:
+- Has `read`, `write`, and `shell` — can read code and write docs
+- Writes only to `docs/` — does NOT modify implementation files (enforced by prompt)
+- Runs as the final step after validation passes
+
 ### Design Principles
 
 Each agent gets only the tools it needs (least privilege):
@@ -295,6 +335,9 @@ Builder:    read, write, shell
 
 Validator:  read, shell (read-only)
             ↑ can inspect, but CANNOT modify anything
+
+Documenter: read, write, shell
+            ↑ can write docs/, but CANNOT modify implementation files
 ```
 
 ## Kiro CLI Features Used
