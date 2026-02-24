@@ -1,0 +1,122 @@
+[
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git diff HEAD",
+      "description": "Show all changes since HEAD"
+    },
+    "tool_response": {
+      "stdout": "",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_UDT79VIpzB31raobVWY8hC"
+  },
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git status && git diff HEAD --stat",
+      "description": "Check git status and diff stats"
+    },
+    "tool_response": {
+      "stdout": "On branch feat-issue-4-adw-1d7283ec-add-documenter-agent\nYour branch is up to date with 'origin/feat-issue-4-adw-1d7283ec-add-documenter-agent'.\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\tagents/\n\tlogs/36e760ff-8092-49c8-bffd-e740b1c6f82b/\n\tlogs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/\n\tlogs/cd618037-18ff-4297-9090-9783e61ed399/\n\nnothing added to commit but untracked files present (use \"git add\" to track)",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_YMftlfefPGqfZcSQjA31yN"
+  },
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git rm -rf --cached --ignore-unmatch .claude/ .mcp.json agents/ logs/ specs/",
+      "description": "Remove ADW internal artifacts from tracking"
+    },
+    "tool_response": {
+      "stdout": "rm '.claude/commands/bug.md'\nrm '.claude/commands/chore.md'\nrm '.claude/commands/classify_adw.md'\nrm '.claude/commands/classify_issue.md'\nrm '.claude/commands/cleanup_worktrees.md'\nrm '.claude/commands/commit.md'\nrm '.claude/commands/conditional_docs.md'\nrm '.claude/commands/document.md'\nrm '.claude/commands/e2e/test_agent_config_validation.md'\nrm '.claude/commands/e2e/test_agent_error_handling.md'\nrm '.claude/commands/e2e/test_builder_agent.md'\nrm '.claude/commands/e2e/test_documenter_agent.md'\nrm '.claude/commands/e2e/test_full_workflow.md'\nrm '.claude/commands/e2e/test_plan_creation.md'\nrm '.claude/commands/e2e/test_team_lead_execution.md'\nrm '.claude/commands/e2e/test_validator_agent.md'\nrm '.claude/commands/feature.md'\nrm '.claude/commands/generate_branch_name.md'\nrm '.claude/commands/health_check.md'\nrm '.claude/commands/implement.md'\nrm '.claude/commands/in_loop_review.md'\nrm '.claude/commands/install.md'\nrm '.claude/commands/install_worktree.md'\nrm '.claude/commands/patch.md'\nrm '.claude/commands/prepare_app.md'\nrm '.claude/commands/prime.md'\nrm '.claude/commands/pull_request.md'\nrm '.claude/commands/resolve_failed_e2e_test.md'\nrm '.claude/commands/resolve_failed_test.md'\nrm '.claude/commands/review.md'\nrm '.claude/commands/start.md'\nrm '.claude/commands/test.md'\nrm '.claude/commands/test_e2e.md'\nrm '.claude/commands/tools.md'\nrm '.claude/commands/track_agentic_kpis.md'\nrm '.claude/hooks/notification.py'\nrm '.claude/hooks/post_tool_use.py'\nrm '.claude/hooks/pre_compact.py'\nrm '.claude/hooks/pre_tool_use.py'\nrm '.claude/hooks/stop.py'\nrm '.claude/hooks/subagent_stop.py'\nrm '.claude/hooks/user_prompt_submit.py'\nrm '.claude/hooks/utils/__pycache__/constants.cpython-312.pyc'\nrm '.claude/hooks/utils/constants.py'\nrm '.claude/hooks/utils/llm/anth.py'\nrm '.claude/hooks/utils/llm/oai.py'\nrm '.claude/settings.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/chat.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/post_tool_use.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/pre_tool_use.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/stop.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/user_prompt_submit.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/chat.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/post_tool_use.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/pre_tool_use.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/stop.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/user_prompt_submit.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/chat.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/post_tool_use.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/pre_tool_use.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/stop.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/user_prompt_submit.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/chat.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/post_tool_use.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/pre_tool_use.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/stop.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/user_prompt_submit.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/chat.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/post_tool_use.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/pre_tool_use.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/stop.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/user_prompt_submit.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/chat.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/post_tool_use.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/pre_tool_use.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/stop.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/user_prompt_submit.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/chat.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/post_tool_use.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/pre_tool_use.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/stop.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/user_prompt_submit.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/chat.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/post_tool_use.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/pre_tool_use.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/stop.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/user_prompt_submit.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/chat.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/post_tool_use.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/pre_tool_use.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/stop.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/user_prompt_submit.json'\nrm 'specs/issue-4-adw-1d7283ec-sdlc_planner-add-documenter-agent.md'",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_ZVfsKuA3ktBOMDnBA2WVe3"
+  },
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git add -A && git status",
+      "description": "Stage all changes and verify"
+    },
+    "tool_response": {
+      "stdout": "On branch feat-issue-4-adw-1d7283ec-add-documenter-agent\nYour branch is up to date with 'origin/feat-issue-4-adw-1d7283ec-add-documenter-agent'.\n\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\tnew file:   agents/1d7283ec/reviewer/review_evidence/evidence.md\n\tnew file:   logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/chat.json\n\tnew file:   logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/post_tool_use.json\n\tnew file:   logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/pre_tool_use.json\n\tnew file:   logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/stop.json\n\tnew file:   logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/user_prompt_submit.json\n\tnew file:   logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/chat.json\n\tnew file:   logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/post_tool_use.json\n\tnew file:   logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/pre_tool_use.json\n\tnew file:   logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/stop.json\n\tnew file:   logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/user_prompt_submit.json\n\tnew file:   logs/cd618037-18ff-4297-9090-9783e61ed399/post_tool_use.json\n\tnew file:   logs/cd618037-18ff-4297-9090-9783e61ed399/pre_tool_use.json\n\tnew file:   logs/cd618037-18ff-4297-9090-9783e61ed399/user_prompt_submit.json",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_RO3QgPtE5uV9y7CRv13H6a"
+  },
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git rm -rf --cached --ignore-unmatch agents/ logs/ && git status",
+      "description": "Remove ADW artifacts from staging and check status"
+    },
+    "tool_response": {
+      "stdout": "rm 'agents/1d7283ec/reviewer/review_evidence/evidence.md'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/chat.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/post_tool_use.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/pre_tool_use.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/stop.json'\nrm 'logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/user_prompt_submit.json'\nrm 'logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/chat.json'\nrm 'logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/post_tool_use.json'\nrm 'logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/pre_tool_use.json'\nrm 'logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/stop.json'\nrm 'logs/36e760ff-8092-49c8-bffd-e740b1c6f82b/user_prompt_submit.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/chat.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/post_tool_use.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/pre_tool_use.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/stop.json'\nrm 'logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/user_prompt_submit.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/chat.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/post_tool_use.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/pre_tool_use.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/stop.json'\nrm 'logs/42963737-6c84-4b38-9a65-d93eebf03cf2/user_prompt_submit.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/chat.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/post_tool_use.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/pre_tool_use.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/stop.json'\nrm 'logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/user_prompt_submit.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/chat.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/post_tool_use.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/pre_tool_use.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/stop.json'\nrm 'logs/53929142-b273-49f4-a705-54e2c2a3aa5f/user_prompt_submit.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/chat.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/post_tool_use.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/pre_tool_use.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/stop.json'\nrm 'logs/96e74c89-063b-4d4f-b45b-89e615cb461e/user_prompt_submit.json'\nrm 'logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/chat.json'\nrm 'logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/post_tool_use.json'\nrm 'logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/pre_tool_use.json'\nrm 'logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/stop.json'\nrm 'logs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/user_prompt_submit.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/chat.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/post_tool_use.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/pre_tool_use.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/stop.json'\nrm 'logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/user_prompt_submit.json'\nrm 'logs/cd618037-18ff-4297-9090-9783e61ed399/post_tool_use.json'\nrm 'logs/cd618037-18ff-4297-9090-9783e61ed399/pre_tool_use.json'\nrm 'logs/cd618037-18ff-4297-9090-9783e61ed399/user_prompt_submit.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/chat.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/post_tool_use.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/pre_tool_use.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/stop.json'\nrm 'logs/f18234e4-e574-4d63-bd93-5f419e55256b/user_prompt_submit.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/chat.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/post_tool_use.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/pre_tool_use.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/stop.json'\nrm 'logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/user_prompt_submit.json'\nOn branch feat-issue-4-adw-1d7283ec-add-documenter-agent\nYour branch is up to date with 'origin/feat-issue-4-adw-1d7283ec-add-documenter-agent'.\n\nChanges to be committed:\n  (use \"git restore --staged <file>...\" to unstage)\n\tdeleted:    logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/chat.json\n\tdeleted:    logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/post_tool_use.json\n\tdeleted:    logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/pre_tool_use.json\n\tdeleted:    logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/stop.json\n\tdeleted:    logs/0b0bf6f0-eba3-418f-9fe5-b65f8d433481/user_prompt_submit.json\n\tdeleted:    logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/chat.json\n\tdeleted:    logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/post_tool_use.json\n\tdeleted:    logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/pre_tool_use.json\n\tdeleted:    logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/stop.json\n\tdeleted:    logs/417f54fb-eab5-4651-9d81-38fa7f6d57ad/user_prompt_submit.json\n\tdeleted:    logs/42963737-6c84-4b38-9a65-d93eebf03cf2/chat.json\n\tdeleted:    logs/42963737-6c84-4b38-9a65-d93eebf03cf2/post_tool_use.json\n\tdeleted:    logs/42963737-6c84-4b38-9a65-d93eebf03cf2/pre_tool_use.json\n\tdeleted:    logs/42963737-6c84-4b38-9a65-d93eebf03cf2/stop.json\n\tdeleted:    logs/42963737-6c84-4b38-9a65-d93eebf03cf2/user_prompt_submit.json\n\tdeleted:    logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/chat.json\n\tdeleted:    logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/post_tool_use.json\n\tdeleted:    logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/pre_tool_use.json\n\tdeleted:    logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/stop.json\n\tdeleted:    logs/45b854ab-dbd4-4baa-96f9-2865d4302e53/user_prompt_submit.json\n\tdeleted:    logs/53929142-b273-49f4-a705-54e2c2a3aa5f/chat.json\n\tdeleted:    logs/53929142-b273-49f4-a705-54e2c2a3aa5f/post_tool_use.json\n\tdeleted:    logs/53929142-b273-49f4-a705-54e2c2a3aa5f/pre_tool_use.json\n\tdeleted:    logs/53929142-b273-49f4-a705-54e2c2a3aa5f/stop.json\n\tdeleted:    logs/53929142-b273-49f4-a705-54e2c2a3aa5f/user_prompt_submit.json\n\tdeleted:    logs/96e74c89-063b-4d4f-b45b-89e615cb461e/chat.json\n\tdeleted:    logs/96e74c89-063b-4d4f-b45b-89e615cb461e/post_tool_use.json\n\tdeleted:    logs/96e74c89-063b-4d4f-b45b-89e615cb461e/pre_tool_use.json\n\tdeleted:    logs/96e74c89-063b-4d4f-b45b-89e615cb461e/stop.json\n\tdeleted:    logs/96e74c89-063b-4d4f-b45b-89e615cb461e/user_prompt_submit.json\n\tdeleted:    logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/chat.json\n\tdeleted:    logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/post_tool_use.json\n\tdeleted:    logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/pre_tool_use.json\n\tdeleted:    logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/stop.json\n\tdeleted:    logs/bafb3c51-cc90-4c09-a2a0-564cb2b749e2/user_prompt_submit.json\n\tdeleted:    logs/f18234e4-e574-4d63-bd93-5f419e55256b/chat.json\n\tdeleted:    logs/f18234e4-e574-4d63-bd93-5f419e55256b/post_tool_use.json\n\tdeleted:    logs/f18234e4-e574-4d63-bd93-5f419e55256b/pre_tool_use.json\n\tdeleted:    logs/f18234e4-e574-4d63-bd93-5f419e55256b/stop.json\n\tdeleted:    logs/f18234e4-e574-4d63-bd93-5f419e55256b/user_prompt_submit.json\n\tdeleted:    logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/chat.json\n\tdeleted:    logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/post_tool_use.json\n\tdeleted:    logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/pre_tool_use.json\n\tdeleted:    logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/stop.json\n\tdeleted:    logs/ffa06a64-0ada-4f22-b131-bcc16eeab2c4/user_prompt_submit.json\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\tagents/\n\tlogs/",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_lHhTvt4CPpn2EsQwl5Vfy8"
+  },
+  {
+    "session_id": "cd618037-18ff-4297-9090-9783e61ed399",
+    "transcript_path": "/home/vol/.claude/projects/-home-vol-Documents-adws-kiro-gateway-kiro-teams-trees-1d7283ec/cd618037-18ff-4297-9090-9783e61ed399.jsonl",
+    "cwd": "/home/vol/Documents/adws-kiro-gateway-kiro-teams/trees/1d7283ec",
+    "permission_mode": "bypassPermissions",
+    "hook_event_name": "PostToolUse",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "git restore --staged . && git status",
+      "description": "Unstage all changes and check status"
+    },
+    "tool_response": {
+      "stdout": "On branch feat-issue-4-adw-1d7283ec-add-documenter-agent\nYour branch is up to date with 'origin/feat-issue-4-adw-1d7283ec-add-documenter-agent'.\n\nUntracked files:\n  (use \"git add <file>...\" to include in what will be committed)\n\tagents/\n\tlogs/36e760ff-8092-49c8-bffd-e740b1c6f82b/\n\tlogs/a3d9aa5b-6a1f-4e5d-842b-35bd7b87400d/\n\tlogs/cd618037-18ff-4297-9090-9783e61ed399/\n\nnothing added to commit but untracked files present (use \"git add\" to track)",
+      "stderr": "",
+      "interrupted": false,
+      "isImage": false,
+      "noOutputExpected": false
+    },
+    "tool_use_id": "tooluse_8sWlpRc7WCWcmAQ6Wo38yH"
+  }
+]
