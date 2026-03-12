@@ -6,7 +6,7 @@
   "allowedTools": ["read", "subagent", "todo"],
   "toolsSettings": {
     "subagent": {
-      "trustedAgents": ["builder", "validator"]
+      "trustedAgents": ["builder", "validator", "documenter"]
     }
   },
   "resources": ["file://specs/**/*.md", "file://README.md"],

@@ -1,0 +1,8 @@
+{
+  "name": "documenter",
+  "description": "Generates documentation for completed and validated features.",
+  "prompt": "file://./documenter-prompt.md",
+  "tools": ["read", "write"],
+  "allowedTools": ["read", "write"],
+  "model": "claude-sonnet-4"
+}
