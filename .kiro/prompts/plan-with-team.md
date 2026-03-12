@@ -40,6 +40,8 @@ Use this EXACT format:
 
 ## Team Orchestration
 
+> **Worktree Isolation**: The team-lead creates an isolated git worktree for this spec using `scripts/worktree-create.sh`. All builders work inside this worktree. After final validation, changes are merged back via `scripts/worktree-merge.sh`.
+
 The team-lead agent will orchestrate execution using these team members:
 
 ### Team Members
@@ -54,6 +56,11 @@ The team-lead agent will orchestrate execution using these team members:
   - Role: Verify implementation meets criteria
   - Agent: validator
 
+- **Documenter**
+  - Name: <unique name, e.g., "feature-documenter">
+  - Role: Generate documentation for completed work
+  - Agent: documenter
+
 ## Step by Step Tasks
 
 ### 1. <First Task Name>
@@ -61,7 +68,6 @@ The team-lead agent will orchestrate execution using these team members:
 - **Depends On**: none
 - **Assigned To**: <team member name>
 - **Agent**: builder
-- **Parallel**: <true/false>
 - **Actions**:
   - <specific action>
   - <specific action>
@@ -73,21 +79,28 @@ The team-lead agent will orchestrate execution using these team members:
 - **Depends On**: <previous task ID>
 - **Assigned To**: <team member name>
 - **Agent**: builder
-- **Parallel**: <true/false>
 - **Actions**:
   - <specific action>
 - **Acceptance Criteria**:
   - <criterion>
 
-### N. Final Validation
+### N-1. Final Validation
 - **Task ID**: validate-all
 - **Depends On**: <all previous task IDs>
 - **Assigned To**: validator
 - **Agent**: validator
-- **Parallel**: false
 - **Checks**:
   - Run all validation commands
   - Verify acceptance criteria met
+
+### N. Documentation
+- **Task ID**: generate-docs
+- **Depends On**: validate-all
+- **Assigned To**: documenter
+- **Agent**: documenter
+- **Actions**:
+  - Read the plan file and implementation files
+  - Generate documentation in `app_docs/`
 
 ## Acceptance Criteria
 <list specific, measurable criteria for task completion>
