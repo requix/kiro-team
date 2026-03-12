@@ -4,7 +4,7 @@ A team orchestration system that enables multiple AI agents to collaborate on co
 
 ## How It Works
 
-A team-lead agent reads a plan, delegates tasks to specialized subagents (builders and validators), and tracks progress. The team-lead is the central coordinator — subagents execute their assigned work and report results back.
+A team-lead agent reads a plan, delegates tasks to specialized subagents (builders, validators, and a documenter), and tracks progress. The team-lead is the central coordinator — subagents execute their assigned work and report results back.
 
 ```
 You ──→ @plan-with-team
@@ -37,20 +37,26 @@ You ──→ "Build a REST API..."
                ▼
          ┌────────────┐
          │ Validator  │  final end-to-end verification
+         └─────┬──────┘
+               │
+               ▼
+         ┌────────────┐
+         │ Documenter │  generate documentation (non-blocking)
          └────────────┘
 ```
 
-Three agent roles, clear separation of concerns:
+Four agent roles, clear separation of concerns:
 
 | Agent | Can Do | Cannot Do |
 |-------|--------|-----------|
 | **Team Lead** | Read code, delegate tasks, track TODO list | Write code |
 | **Builder** | Write code, create files, run commands | Spawn other agents |
 | **Validator** | Read files, run tests, inspect output | Modify anything |
+| **Documenter** | Read files, generate documentation | Modify implementation code, spawn agents, run commands |
 
 ## How Task Coordination Works
 
-The team-lead manages all task tracking. Subagents (builders, validators) do not have access to the TODO list — they receive instructions from the team-lead, do their work, and return results. The team-lead then updates task status based on those results.
+The team-lead manages all task tracking. Subagents (builders, validators, documenter) do not have access to the TODO list — they receive instructions from the team-lead, do their work, and return results. The team-lead then updates task status based on those results.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -84,8 +90,9 @@ The team-lead manages all task tracking. Subagents (builders, validators) do not
 ## Quick Start
 
 ```bash
-# 1. Copy .kiro folder into your project
+# 1. Copy .kiro folder and scripts into your project
 cp -r .kiro /path/to/your/project/
+cp -r scripts /path/to/your/project/scripts
 
 # 2. Enable the TODO list (experimental)
 kiro-cli settings chat.enableTodoList true
@@ -143,7 +150,8 @@ The team lead:
 5. If validation passes, marks task complete and proceeds to next task
 6. If validation fails, spawns builder again to fix issues
 7. After all tasks complete, spawns validator for final end-to-end verification
-8. Reports results
+8. Spawns documenter to generate documentation (non-blocking)
+9. Reports results
 
 ### Phase 3: Validation
 
@@ -162,6 +170,15 @@ The validator agent runs after each builder task AND at the end:
 - Reports comprehensive pass/fail
 
 If any validation fails, the team lead re-deploys a builder to fix issues, then re-validates.
+
+### Phase 4: Documentation
+
+After final validation passes, the team lead spawns the documenter agent:
+
+- Reads the plan and implementation files
+- Generates a markdown documentation file in `app_docs/`
+- Documents what was actually built (file paths, functions, APIs)
+- This step is non-blocking — if the documenter fails, the workflow still succeeds
 
 ## Architecture
 
@@ -218,9 +235,15 @@ If any validation fails, the team lead re-deploys a builder to fix issues, then 
 │   ├── builder.json            ← Builder config
 │   ├── builder-prompt.md       ← Builder behavior
 │   ├── validator.json          ← Validator config
-│   └── validator-prompt.md     ← Validator behavior
+│   ├── validator-prompt.md     ← Validator behavior
+│   ├── documenter.json         ← Documenter config
+│   └── documenter-prompt.md    ← Documenter behavior
 └── prompts/
     └── plan-with-team.md       ← Planning prompt (invoked with @)
+
+scripts/
+├── worktree-create.sh          ← Creates isolated worktree for builder
+└── worktree-merge.sh           ← Merges builder worktree and cleans up
 ```
 
 > **Note:** All agent configs must be directly in `.kiro/agents/` — subdirectories are not supported for subagent resolution.
@@ -237,7 +260,7 @@ Each agent is defined by a JSON config + a markdown prompt:
   "allowedTools": ["read", "subagent", "todo"],
   "toolsSettings": {
     "subagent": {
-      "trustedAgents": ["builder", "validator"]
+      "trustedAgents": ["builder", "validator", "documenter"]
     }
   },
   "model": "claude-sonnet-4"
@@ -245,7 +268,7 @@ Each agent is defined by a JSON config + a markdown prompt:
 ```
 
 Key points:
-- Has `subagent` tool to spawn builders and validators
+- Has `subagent` tool to spawn builders, validators, and documenter
 - Does NOT have `write` or `shell` — cannot modify files directly
 - Can use `todo` tool for task tracking (experimental, enable separately)
 - `trustedAgents` allows spawning without permission prompts each time
@@ -282,6 +305,21 @@ Key points:
 - Does NOT have `write` — cannot change files
 - Shell is auto-allowed for read-only commands
 
+**documenter.json** — the documentation generator:
+```json
+{
+  "name": "documenter",
+  "tools": ["read", "write"],
+  "allowedTools": ["read", "write"],
+  "model": "claude-sonnet-4"
+}
+```
+
+Key points:
+- Has `read` and `write` — can inspect files and create documentation
+- Does NOT have `shell` — documentation generation is purely file-based
+- Does NOT have `subagent` — cannot spawn other agents
+
 ### Design Principles
 
 Each agent gets only the tools it needs (least privilege):
@@ -295,14 +333,17 @@ Builder:    read, write, shell
 
 Validator:  read, shell (read-only)
             ↑ can inspect, but CANNOT modify anything
+
+Documenter: read, write
+            ↑ can read files and generate docs, but CANNOT run commands or spawn agents
 ```
 
 ## Kiro CLI Features Used
 
 | Feature | What It Does Here |
 |---------|-------------------|
-| [Custom Agents](https://kiro.dev/docs/cli/custom-agents) | Define team-lead, builder, validator with specific tools |
-| [Subagents](https://kiro.dev/docs/cli/chat/subagents) | Team lead spawns builders/validators as child agents |
+| [Custom Agents](https://kiro.dev/docs/cli/custom-agents) | Define team-lead, builder, validator, documenter with specific tools |
+| [Subagents](https://kiro.dev/docs/cli/chat/subagents) | Team lead spawns builders/validators/documenter as child agents |
 | [Prompts](https://kiro.dev/docs/cli/chat/manage-prompts) | `@plan-with-team` reusable planning template |
 | [TODO Lists](https://kiro.dev/docs/cli/experimental/todo-lists) | Team-lead tracks task progress (not accessible to subagents) |
 
@@ -405,6 +446,11 @@ team-lead reads specs/calculator-api.md
     └─→ subagent(validator): "Final validation — verify server starts and endpoints work"
             └─→ runs node src/index.js, tests endpoints
             └─→ reports: "✅ PASS. All checks passed."
+    │
+    └─→ subagent(documenter): "Document the calculator API feature"
+            └─→ reads plan and implementation files
+            └─→ creates app_docs/feature-calculator-api.md
+            └─→ reports: "✅ Documentation generated."
 ```
 
 ### Step 3: Test the Result
@@ -464,6 +510,77 @@ In the plan spec, this is expressed as:
 ### 4. Integrate
 - Depends On: module-a, module-b
 ```
+
+## Worktree Isolation for Spec Execution
+
+Every spec execution runs inside an isolated git worktree. The team-lead creates it as its first step, all builders work sequentially inside it, and the worktree merges once at the end. This enables multi-spec parallelism — two specs can run in separate terminals without conflicting.
+
+### How It Works
+
+```
+user requests spec execution
+    │
+    ├─→ worktree-create.sh my-feature  → .worktrees/my-feature/
+    │
+    │   team-lead orchestrates all builders sequentially
+    │   inside .worktrees/my-feature/
+    │
+    ├─→ final validation passes        → ✅
+    ├─→ worktree-merge.sh my-feature   → merged, worktree removed
+    │
+    └─→ .worktrees/ cleaned up
+```
+
+### Scripts
+
+**`scripts/worktree-create.sh <spec-name>`**
+
+Creates an isolated git worktree at `.worktrees/<spec-name>/` on a new branch `spec/<spec-name>`. Prints the absolute worktree path to stdout (the team-lead captures this and passes it to every subagent).
+
+```bash
+WORKTREE_PATH=$(bash scripts/worktree-create.sh add-auth-flow)
+# → /path/to/project/.worktrees/add-auth-flow
+```
+
+Idempotent — if the worktree already exists, prints its path and exits successfully.
+
+**`scripts/worktree-merge.sh <spec-name>`**
+
+Merges the spec's branch back into the current branch, then removes the worktree and cleans up the branch.
+
+```bash
+bash scripts/worktree-merge.sh add-auth-flow
+# → Merges spec/add-auth-flow, removes .worktrees/add-auth-flow/, deletes branch
+```
+
+If a merge conflict occurs, the merge is aborted, the worktree is preserved for manual resolution, and the script exits with code 1.
+
+### Team-Lead Protocol
+
+The team-lead follows this 3-step protocol for every spec execution:
+
+1. **Create** — Run `worktree-create.sh <spec-name>` as the very first action. Capture the path.
+2. **Execute** — All builders and validators work inside this single worktree. Pass the path to every subagent.
+3. **Merge** — After final validation passes, run `worktree-merge.sh <spec-name>`. If conflict, report and preserve.
+
+### File Structure
+
+```
+project/
+├── .worktrees/              ← Created at runtime, gitignored
+│   └── add-auth-flow/       ← Isolated copy for this spec execution
+└── scripts/
+    ├── worktree-create.sh   ← Creates spec worktree
+    └── worktree-merge.sh    ← Merges and cleans up worktree
+```
+
+> **Note:** `.worktrees/` is gitignored. Worktrees are ephemeral — created during spec execution and removed after merging. They should not persist across sessions.
+
+### When to Use Worktree Isolation
+
+Worktree isolation is **always used** for spec execution. It is the default operating mode for the team-lead agent.
+
+This enables **multi-spec parallelism**: run two specs in separate terminals, each with its own worktree, without conflicts. This replaces the previous multi-builder parallelism model which was complex and error-prone.
 
 ## Customization
 
