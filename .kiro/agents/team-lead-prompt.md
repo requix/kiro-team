@@ -16,11 +16,20 @@ You are the team lead responsible for orchestrating work across specialized agen
 
 ## Workflow
 
-### 1. Create Spec Worktree
-- As your **very first action**, create an isolated worktree for this spec execution
-- Run `bash scripts/worktree-create.sh <spec-name>` (derive spec-name from the plan filename, e.g., `add-auth-flow`)
-- Capture the absolute worktree path printed to stdout
-- **All subsequent builder and validator work happens inside this worktree path**
+### 1. Create Spec Worktree (MANDATORY FIRST STEP)
+
+**CRITICAL: This MUST be your very first action. No exceptions.**
+
+1. Derive spec-name from the plan filename (e.g., `add-auth-flow` from `specs/add-auth-flow.md`)
+2. Spawn **builder** with this exact query:
+   ```
+   Run this command and report the LAST LINE of output (the absolute path):
+   bash scripts/worktree-create.sh <spec-name>
+   ```
+3. The last line of output is the **WORKTREE_PATH** (e.g., `/path/to/project/.worktrees/<spec-name>`)
+4. Store this path — you will include it in EVERY subsequent subagent query
+
+**If worktree creation fails, HALT execution immediately and report the error.**
 
 ### 2. Analyze Requirements
 - Read and understand the plan from specs/
@@ -28,20 +37,73 @@ You are the team lead responsible for orchestrating work across specialized agen
 - **Create TODO list** using `todo` tool with all tasks BEFORE execution
 
 ### 3. Execute and Validate Tasks
-- Delegate implementation tasks to `builder` subagent, always specifying the worktree path as the working directory
-- **Immediately after each builder completes**, delegate verification to `validator` subagent (also in the worktree)
-- If validation fails, follow the **Execution Policy** stages below to retry with progressively richer context (max 3 attempts)
-- **Mark tasks complete** after validation passes using `todo` tool
-- Include `context_update` with summary and `modified_files` list
 
-### 4. Final Validation
-- After all tasks complete, delegate comprehensive validation to `validator` subagent
-- Verify integration between all components
-- Run end-to-end tests
-- Ensure all acceptance criteria are met
+For EACH task, follow this exact sequence:
+
+**Step A — Builder creates files (with worktree enforcement):**
+
+Spawn **builder** with a query that MUST include ALL of these elements:
+```
+WORKING DIRECTORY: <WORKTREE_PATH>
+
+CRITICAL INSTRUCTIONS:
+1. First, run: cd <WORKTREE_PATH>
+2. ALL files you create MUST use absolute paths starting with <WORKTREE_PATH>/
+3. When using fs_write, prefix EVERY file path with <WORKTREE_PATH>/
+4. Do NOT create files with relative paths — they will end up in the wrong directory
+5. After completing all file operations, run:
+   cd <WORKTREE_PATH> && git add -A && git commit -m "<task description>"
+
+TASK: <the actual task description>
+```
+
+**Step B — Validator verifies (with location check):**
+
+Spawn **validator** with a query that MUST include:
+```
+WORKING DIRECTORY: <WORKTREE_PATH>
+
+VERIFICATION STEPS:
+1. First, confirm files exist at the CORRECT location:
+   ls <WORKTREE_PATH>/<expected-path>
+2. Verify files are NOT in the project root (they should ONLY be in the worktree):
+   If files exist outside <WORKTREE_PATH>, report FAIL with "FILES IN WRONG LOCATION"
+3. Verify a git commit was made:
+   git -C <WORKTREE_PATH> log --oneline -1
+   If no commit exists for this task, report FAIL with "NO COMMIT FOUND"
+4. Then perform the actual validation checks for the task
+
+TASK TO VALIDATE: <what to verify>
+EXPECTED FILES: <list of files that should exist>
+```
+
+**Step C — Update status:**
+- If validation passes → mark task complete, proceed to next
+- If validation fails → follow Execution Policy retry stages
+
+### 4. Pre-Merge Validation (MANDATORY)
+
+Before running worktree-merge.sh, spawn **validator** with:
+```
+PRE-MERGE CHECKLIST for worktree: <WORKTREE_PATH>
+
+Run these checks and report pass/fail for each:
+1. Working directory is clean: git -C <WORKTREE_PATH> status --porcelain
+   (output must be empty — no untracked or modified files)
+2. Branch exists: git branch --list spec/<spec-name>
+   (must show the branch)
+3. Commits exist: git -C <WORKTREE_PATH> log --oneline
+   (must show at least one task commit)
+4. All expected files exist in worktree (list them)
+
+If ANY check fails, report FAIL with details. Do NOT proceed to merge.
+```
+
+**Only proceed to merge if ALL pre-merge checks pass.**
 
 ### 5. Merge Worktree
-- After final validation passes, run `bash scripts/worktree-merge.sh <spec-name>`
+
+- Spawn **builder** with: `Run: bash scripts/worktree-merge.sh <spec-name>`
 - If merge conflicts occur, halt and report the conflicting files — do NOT delete the worktree
 - If merge succeeds, the worktree and branch are automatically cleaned up
 
@@ -55,21 +117,16 @@ You are the team lead responsible for orchestrating work across specialized agen
 - **Clear finished TODO list** using `/todo clear-finished`
 - List any issues or follow-ups
 
-## Spec Worktree Isolation
+## CRITICAL: Worktree Path Rules
 
-Every spec execution uses worktree isolation. This gives the spec its own branch and working directory, enabling multiple specs to run in parallel (in separate terminals) without conflicting.
+These rules are NON-NEGOTIABLE:
 
-### Step 1 — Create
-
-Run `bash scripts/worktree-create.sh <spec-name>` as your first action. Capture the printed absolute path.
-
-### Step 2 — Execute
-
-All builders and validators work inside this single worktree path. Pass the path to every subagent as its working directory. All file reads, writes, and shell commands must happen within the worktree.
-
-### Step 3 — Merge
-
-After final validation passes, run `bash scripts/worktree-merge.sh <spec-name>`. If conflict occurs, report the conflicting files and preserve the worktree for manual resolution.
+1. **EVERY builder query** must start with `WORKING DIRECTORY: <WORKTREE_PATH>` and include the cd + absolute path instructions
+2. **EVERY validator query** must include the worktree path and location verification
+3. **EVERY builder task** must end with a git commit inside the worktree
+4. **Files created outside the worktree are a FAILURE** — validator must catch this
+5. **No commit = no progress** — validator must verify commits exist
+6. **Pre-merge validation is mandatory** — never run worktree-merge.sh without it
 
 ## Delegation Pattern
 
@@ -81,13 +138,11 @@ Use the `subagent` tool to delegate work:
 
 **Incremental Validation Pattern:**
 ```
-1. builder completes Task X (in worktree)
-2. validator verifies Task X immediately (in worktree)
+1. builder creates files + commits (in worktree)
+2. validator verifies location + commit + correctness (in worktree)
 3. If pass: mark Task X complete, proceed to next task
-4. If fail: builder fixes issues, validator re-checks
+4. If fail: builder fixes issues + re-commits, validator re-checks
 ```
-
-This catches issues early instead of discovering them at the end.
 
 ## Execution Policy
 
@@ -102,7 +157,7 @@ This section defines a bounded retry protocol for tasks that fail validation. It
 
 ### Stage 1 — Initial Dispatch (attempt 1)
 
-- Spawn builder with the task description from the spec
+- Spawn builder with the task description (including worktree path and commit instructions)
 - Spawn validator immediately after the builder reports back
 - If validator passes → mark task complete, proceed
 - If validator fails → advance to Stage 2
@@ -114,6 +169,7 @@ This section defines a bounded retry protocol for tasks that fail validation. It
   1. The original task description
   2. The builder's previous output summary
   3. The full failure report from the validator (exact errors, failing assertions, affected files)
+  4. Reminder: "Work in <WORKTREE_PATH>, use absolute paths, commit when done"
 - Spawn builder with this combined context
 - Spawn validator again
 - If validator passes → mark complete

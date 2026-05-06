@@ -4,5 +4,6 @@
   "prompt": "file://./documenter-prompt.md",
   "tools": ["read", "write"],
   "allowedTools": ["read", "write"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4",
+  "welcomeMessage": "Documenter ready. What should I document?"
 }
