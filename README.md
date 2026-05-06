@@ -7,11 +7,7 @@ A team orchestration system that enables multiple AI agents to collaborate on co
 A team-lead agent reads a plan, delegates tasks to specialized subagents (builders, validators, and a documenter), and tracks progress. The team-lead is the central coordinator — subagents execute their assigned work and report results back.
 
 ```
-You ──→ @plan-with-team
-                │
-        Agent asks: "What do you want to build?"
-                │
-You ──→ "Build a REST API..."
+You ──→ @plan-with-team Build a REST API...
                 │
                 ▼
           ┌────────────┐
@@ -101,31 +97,31 @@ kiro-cli settings chat.enableTodoList true
 cd /path/to/your/project
 kiro-cli chat
 
-# 4. Invoke the planning prompt
-@plan-with-team
+# 4. Invoke the planning skill with your task description
+@plan-with-team Build a CLI tool that converts CSV to JSON
 
-# 5. The agent asks what you want to build — send your request
-Build a CLI tool that converts CSV to JSON
-
-# 6. Switch to team-lead and execute
+# 5. Switch to team-lead and execute
 /agent swap        # select: team-lead
 Execute the plan in specs/csv-to-json.md
 ```
 
-> **Note:** Kiro CLI file-based prompts [do not support inline arguments](https://kiro.dev/docs/cli/chat/manage-prompts/). You invoke `@plan-with-team` first, then the agent asks for your task description in a follow-up message.
+> **Note:** `plan-with-team` is implemented as an [Agent Skill](https://kiro.dev/docs/cli/chat/skills/) (`.kiro/skills/plan-with-team/SKILL.md`), not a prompt. Skills preserve the user's full message as input while loading the skill content as context — this means inline arguments work reliably in all modes (TUI, classic, and headless). If you invoke `@plan-with-team` without additional text, the agent infers a task from the repository context.
 
 ## Phases
 
 ### Phase 1: Planning
 
-The `@plan-with-team` prompt activates the planning agent. It only creates a plan — no code is written.
+The `@plan-with-team` skill activates the planning agent. It only creates a plan — no code is written.
 
 ```bash
-@plan-with-team
-# Agent responds: "What would you like to build?"
+# Single-message workflow (recommended)
+@plan-with-team Add user authentication with JWT tokens
 
-Add user authentication with JWT tokens
+# Without arguments — agent infers task from repo context and plans immediately
+@plan-with-team
 ```
+
+You can also invoke `@plan-with-team` without arguments — the agent will infer a task from the repository context (README, open issues, recent git history) and proceed to plan immediately.
 
 This creates `specs/user-auth-jwt.md` containing:
 - Task breakdown with dependencies
@@ -190,7 +186,7 @@ After final validation passes, the team lead spawns the documenter agent:
 │  │                   Agent Layer                         │  │
 │  │                                                       │  │
 │  │  ┌─────────────┐                                      │  │
-│  │  │ Default     │  @plan-with-team prompt              │  │
+│  │  │ Default     │  @plan-with-team skill               │  │
 │  │  │ Agent       │──────────────────────┐               │  │
 │  │  └─────────────┘                      │               │  │
 │  │                                       ▼               │  │
@@ -238,8 +234,11 @@ After final validation passes, the team lead spawns the documenter agent:
 │   ├── validator-prompt.md     ← Validator behavior
 │   ├── documenter.json         ← Documenter config
 │   └── documenter-prompt.md    ← Documenter behavior
-└── prompts/
-    └── plan-with-team.md       ← Planning prompt (invoked with @)
+├── prompts/
+│   └── (deprecated - migrated to skills)
+└── skills/
+    └── plan-with-team/
+        └── SKILL.md            ← Planning skill (invoked with @)
 
 scripts/
 ├── worktree-create.sh          ← Creates isolated worktree for builder
@@ -357,13 +356,7 @@ $ kiro-cli chat
 ```
 
 ```
-> @plan-with-team
-```
-
-The agent asks what you want to build. Send your request:
-
-```
-> Build a REST API with endpoints for add, subtract, multiply, divide
+> @plan-with-team Build a REST API with endpoints for add, subtract, multiply, divide
 ```
 
 Kiro generates `specs/calculator-api.md`:
@@ -644,7 +637,7 @@ This project is a port of the [claude-code-hooks-mastery](https://github.com/ant
 | Task list | `TaskCreate/Update/List/Get` — shared, all agents read/write | `todo` — team-lead only, subagents cannot access |
 | Spawn child agent | `Task` tool with `run_in_background`, `resume`, per-task `model` | `subagent` tool, up to 4 parallel, no resume |
 | Agent definitions | `.claude/agents/*.md` (YAML frontmatter, subdirs work) | `.kiro/agents/*.json` + `*-prompt.md` (flat directory only) |
-| Slash commands | `.claude/commands/*.md` with arguments | `.kiro/prompts/*.md` (no inline arguments) |
+| Slash commands | `.claude/commands/*.md` with arguments | `.kiro/prompts/*.md` (no native inline arguments, but `plan-with-team` detects trailing text as a workaround) |
 | Post-tool hooks | Python scripts in `.claude/hooks/` | `hooks` field in agent JSON config |
 | Subagent tools | Full tool access | Limited: read, write, shell, MCP only |
 
@@ -654,7 +647,7 @@ The biggest difference is task coordination. In Claude Code, builders call `Task
 
 | Command | What It Does |
 |---------|-------------|
-| `@plan-with-team` | Activate the planning prompt (then send your request) |
+| `@plan-with-team` | Activate the planning prompt — provide your task inline: `@plan-with-team <task>` |
 | `/agent swap` | Switch between agents (select team-lead) |
 | `/agent list` | List available agents |
 | `/read <file>` | Read a file in the chat |
@@ -699,13 +692,11 @@ If your agent config includes these tools, they'll be silently unavailable when 
 
 ## Requirements
 
-- Kiro CLI >= 1.23, < 2.0.0 (subagents support)
+- Kiro CLI 2.0+ (skills, TUI, headless mode support)
 - Optional — enable TODO list for team-lead task tracking:
   ```bash
   kiro-cli settings chat.enableTodoList true
   ```
-
-> **Kiro CLI 2.x users:** This version is not compatible with Kiro CLI 2.0+. A v2-compatible release is in progress.
 
 ## License
 
