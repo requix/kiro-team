@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/requix/kiro-team/agent-config.schema.json",
+  "title": "Kiro Team Agent Configuration",
+  "description": "Schema for validating kiro-team agent configuration files",
+  "type": "object",
+  "required": ["name", "description", "prompt", "tools", "allowedTools", "model"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Agent identifier, kebab-case"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 500,
+      "description": "Brief description of the agent's purpose"
+    },
+    "prompt": {
+      "type": "string",
+      "pattern": "^file://\\./[a-z][a-z0-9-]*-prompt\\.md$",
+      "description": "File reference to the system prompt markdown file"
+    },
+    "tools": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["read", "write", "shell", "subagent", "todo", "grep", "glob", "code", "web_fetch"]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Tools available to this agent"
+    },
+    "allowedTools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Tools the agent is allowed to use (should match tools)"
+    },
+    "model": {
+      "type": "string",
+      "enum": [
+        "claude-sonnet-4",
+        "claude-opus-4",
+        "claude-haiku-4",
+        "claude-3-5-sonnet",
+        "claude-3-opus",
+        "claude-3-haiku"
+      ],
+      "description": "Model to use for this agent"
+    },
+    "welcomeMessage": {
+      "type": "string",
+      "maxLength": 200,
+      "description": "Optional greeting message when agent is activated"
+    },
+    "resources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^file://.*$"
+      },
+      "description": "File resources available to the agent"
+    },
+    "toolsSettings": {
+      "type": "object",
+      "properties": {
+        "subagent": {
+          "type": "object",
+          "properties": {
+            "trustedAgents": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "minItems": 1,
+              "description": "Agents this agent can delegate to"
+            }
+          },
+          "required": ["trustedAgents"]
+        },
+        "shell": {
+          "type": "object",
+          "properties": {
+            "autoAllowReadonly": {
+              "type": "boolean",
+              "description": "Auto-approve read-only shell commands"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "tools": {
+            "contains": { "const": "subagent" }
+          }
+        }
+      },
+      "then": {
+        "required": ["toolsSettings"],
+        "properties": {
+          "toolsSettings": {
+            "required": ["subagent"]
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

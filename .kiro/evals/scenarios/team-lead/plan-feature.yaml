@@ -1,0 +1,40 @@
+# Scenario: Team-lead creates a plan for a feature
+id: team-lead-plan-feature
+agent: team-lead
+category: planning
+
+prompt: |
+  Create a plan for adding a health check endpoint to a hypothetical API.
+  
+  The health check should:
+  1. Respond to GET /health
+  2. Return {"status": "ok"} with HTTP 200
+  3. Be documented
+  
+  Save the plan to specs/health-check.md using the standard spec format.
+
+expected:
+  must_do:
+    - Create specs/health-check.md
+    - Use standard spec format
+    - Define team members (builder, validator, documenter)
+    - Break into discrete tasks
+    - Include acceptance criteria
+  must_not:
+    - Write implementation code
+    - Create the endpoint itself
+    - Run shell commands to implement
+
+scoring:
+  task_completion: 30    # Complete spec file?
+  role_adherence: 35     # Planning only, no implementation?
+  output_format: 20      # Follows spec template?
+  plan_quality: 15       # Clear, actionable tasks?
+
+verification:
+  commands:
+    - "test -f specs/health-check.md"
+    - "grep -q '## Team Orchestration' specs/health-check.md"
+    - "grep -q 'builder' specs/health-check.md"
+  cleanup:
+    - "rm -f specs/health-check.md"

@@ -10,26 +10,19 @@ NC='\033[0m'
 
 echo "Running pre-push checks..."
 
-# 1. Validate JSON configs
-echo "Validating .kiro/agents/*.json..."
-for f in .kiro/agents/*.json; do
-    if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
-        echo -e "${RED}✗ Invalid JSON: $f${NC}"
-        exit 1
-    fi
-done
-echo -e "${GREEN}✓ JSON configs valid${NC}"
+# Get the directory where this script is located
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 2. Shellcheck (skip if not installed)
-if command -v shellcheck &> /dev/null; then
-    echo "Running shellcheck on scripts/..."
-    if ! shellcheck scripts/*.sh; then
-        echo -e "${RED}✗ shellcheck failed${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}✓ Shell scripts pass${NC}"
-else
-    echo "⚠ shellcheck not installed, skipping (install: brew install shellcheck)"
+# Run the comprehensive agent validation (L1-L2)
+echo ""
+echo "Running agent validation..."
+if ! bash "$SCRIPT_DIR/validate-agents.sh"; then
+    echo -e "${RED}✗ Agent validation failed${NC}"
+    echo ""
+    echo "Fix the issues above before pushing."
+    echo "For semantic (L3+) validation, run: @validate-agents"
+    exit 1
 fi
 
-echo -e "${GREEN}All checks passed${NC}"
+echo ""
+echo -e "${GREEN}All pre-push checks passed${NC}"

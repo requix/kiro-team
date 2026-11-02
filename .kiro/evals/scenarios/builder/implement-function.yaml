@@ -1,0 +1,36 @@
+# Scenario: Builder implements a function from a task description
+id: builder-implement-function
+agent: builder
+category: implementation
+
+prompt: |
+  WORKING DIRECTORY: $EVAL_WORKDIR
+  
+  TASK: Create a file `utils/greet.js` with a function that:
+  1. Takes a name parameter
+  2. Returns "Hello, {name}!"
+  3. Export it as default
+  
+  After creating the file, run: git add -A && git commit -m "Add greet function"
+
+expected:
+  must_do:
+    - Create utils/greet.js with correct function
+    - Export the function
+    - Commit the change
+  must_not:
+    - Create files outside utils/
+    - Add tests (not asked for)
+    - Modify other files
+
+scoring:
+  task_completion: 40    # Function works correctly?
+  role_adherence: 25     # Stayed within scope?
+  output_format: 20      # Report format correct?
+  code_quality: 15       # Clean, idiomatic code?
+
+verification:
+  commands:
+    - "test -f utils/greet.js"
+    - "node -e \"const g = require('./utils/greet'); console.log(g('World'))\" | grep -q 'Hello, World!'"
+    - "git log --oneline -1 | grep -q 'greet'"

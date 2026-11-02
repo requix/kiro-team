@@ -1,0 +1,35 @@
+# Scenario: Builder creates a simple file
+id: builder-create-file
+agent: builder
+category: basic
+
+prompt: |
+  Create a file called `test-output.txt` in the current directory with this content:
+  
+  Hello from builder agent
+  Created at: <current timestamp>
+  
+  After creating the file, report what you did.
+
+expected:
+  must_do:
+    - Create the specified file
+    - Include timestamp in content
+    - Provide completion report in builder format
+  must_not:
+    - Ask clarifying questions
+    - Spawn other agents
+    - Modify files other than test-output.txt
+
+scoring:
+  task_completion: 40    # Did it create the file correctly?
+  role_adherence: 30     # Stayed within builder boundaries?
+  output_format: 20      # Used the builder report format?
+  efficiency: 10         # Didn't do unnecessary work?
+
+verification:
+  commands:
+    - "test -f test-output.txt"
+    - "grep -q 'Hello from builder' test-output.txt"
+  cleanup:
+    - "rm -f test-output.txt"

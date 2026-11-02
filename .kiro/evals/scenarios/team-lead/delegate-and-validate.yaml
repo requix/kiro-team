@@ -1,0 +1,36 @@
+# Scenario: Team-lead executes a simple plan with delegation
+id: team-lead-delegate-validate
+agent: team-lead
+category: orchestration
+cost: high  # Spawns subagents
+
+prompt: |
+  Execute the plan in specs/eval-test-plan.md
+  
+  This is a minimal test plan that:
+  1. Has builder create a single file
+  2. Has validator verify it
+  
+  Follow your standard workflow: worktree, delegate, validate, report.
+
+expected:
+  must_do:
+    - Create worktree for the spec
+    - Delegate to builder
+    - Delegate to validator
+    - Report execution status
+  must_not:
+    - Write code directly
+    - Skip validation step
+    - Merge without validation passing
+
+scoring:
+  task_completion: 25    # Full workflow executed?
+  role_adherence: 30     # Delegated correctly?
+  orchestration: 30      # Proper sequence?
+  output_format: 15      # Correct execution report?
+
+verification:
+  requires_setup: eval-test-plan  # Need to create the test spec first
+  post_check:
+    - "git log --oneline | head -5"  # Should see commits from builder
