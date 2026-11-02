@@ -626,7 +626,7 @@ Each agent can use a different model:
 
 ### Modifying the Plan Format
 
-Edit `.kiro/prompts/plan-with-team.md` to change what the planning prompt generates. The team lead reads the plan as plain text, so any structured markdown format works — just keep it consistent.
+Edit `.kiro/skills/plan-with-team/SKILL.md` to change what the planning skill generates. The team lead reads the plan as plain text, so any structured markdown format works — just keep it consistent.
 
 ## Comparison with Claude Code
 
@@ -637,7 +637,7 @@ This project is a port of the [claude-code-hooks-mastery](https://github.com/ant
 | Task list | `TaskCreate/Update/List/Get` — shared, all agents read/write | `todo` — team-lead only, subagents cannot access |
 | Spawn child agent | `Task` tool with `run_in_background`, `resume`, per-task `model` | `subagent` tool, up to 4 parallel, no resume |
 | Agent definitions | `.claude/agents/*.md` (YAML frontmatter, subdirs work) | `.kiro/agents/*.json` + `*-prompt.md` (flat directory only) |
-| Slash commands | `.claude/commands/*.md` with arguments | `.kiro/prompts/*.md` (no native inline arguments, but `plan-with-team` detects trailing text as a workaround) |
+| Slash commands | `.claude/commands/*.md` with arguments | `.kiro/skills/*/SKILL.md` (skills preserve user's full message as input) |
 | Post-tool hooks | Python scripts in `.claude/hooks/` | `hooks` field in agent JSON config |
 | Subagent tools | Full tool access | Limited: read, write, shell, MCP only |
 
@@ -663,9 +663,9 @@ The biggest difference is task coordination. In Claude Code, builders call `Task
 - Verify `.kiro/agents/team-lead.json` exists in your project root
 - Check the JSON is valid: `cat .kiro/agents/team-lead.json | python3 -m json.tool`
 
-**Plan prompt writes code instead of just creating a plan**
-- Verify `.kiro/prompts/plan-with-team.md` contains the `**PLANNING ONLY**` instruction
-- The prompt should only output a spec file to `specs/`
+**Plan skill writes code instead of just creating a plan**
+- Verify `.kiro/skills/plan-with-team/SKILL.md` contains the `PLANNING ONLY` instruction
+- The skill should only output a spec file to `specs/`
 
 **Builder can't write files**
 - Ensure builder.json includes `"write"` in the `tools` array

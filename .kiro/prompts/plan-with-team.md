@@ -1,3 +1,5 @@
+> **⚠️ DEPRECATED**: This file is kept for reference only. The active version is `.kiro/skills/plan-with-team/SKILL.md`. Edit that file instead.
+
 # Plan With Team
 
 Create a detailed implementation plan based on the user's requirements. Analyze the request, think through the implementation approach, and save a comprehensive specification document to `specs/<name-of-plan>.md`.
