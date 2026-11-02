@@ -2,8 +2,9 @@
   "name": "builder",
   "description": "Focused engineering agent that executes ONE task at a time. Builds, implements, creates.",
   "prompt": "file://./builder-prompt.md",
-  "tools": ["read", "write", "shell"],
-  "allowedTools": ["read", "write", "shell"],
+  "tools": ["fs_read", "fs_write", "execute_bash"],
+  "allowedTools": ["fs_read", "fs_write", "execute_bash"],
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4",
   "welcomeMessage": "Builder ready. What task should I execute?"
 }

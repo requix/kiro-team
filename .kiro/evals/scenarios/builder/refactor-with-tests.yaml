@@ -1,0 +1,74 @@
+# Scenario: Builder refactors existing code while maintaining test coverage
+id: builder-refactor-with-tests
+agent: builder
+category: advanced
+cost: medium
+
+description: |
+  Tests the builder's ability to:
+  1. Read and understand existing code
+  2. Refactor while preserving behavior
+  3. Run tests to verify no regressions
+  4. Report changes comprehensively
+
+prompt: |
+  Refactor the function in `src/utils/calculator.js`:
+  
+  Current code (create this file first if it doesn't exist):
+  ```javascript
+  function calculate(a, b, op) {
+    if (op === 'add') return a + b;
+    if (op === 'sub') return a - b;
+    if (op === 'mul') return a * b;
+    if (op === 'div') return b !== 0 ? a / b : null;
+    return null;
+  }
+  module.exports = { calculate };
+  ```
+  
+  Test file at `src/utils/calculator.test.js`:
+  ```javascript
+  const { calculate } = require('./calculator');
+  
+  console.log('Test 1:', calculate(2, 3, 'add') === 5 ? 'PASS' : 'FAIL');
+  console.log('Test 2:', calculate(5, 3, 'sub') === 2 ? 'PASS' : 'FAIL');
+  console.log('Test 3:', calculate(4, 3, 'mul') === 12 ? 'PASS' : 'FAIL');
+  console.log('Test 4:', calculate(6, 2, 'div') === 3 ? 'PASS' : 'FAIL');
+  console.log('Test 5:', calculate(6, 0, 'div') === null ? 'PASS' : 'FAIL');
+  ```
+  
+  Task:
+  1. Create both files if they don't exist
+  2. Refactor `calculate` to use a switch statement or object lookup
+  3. Run the tests to verify all still pass
+  4. Report your changes
+
+expected:
+  must_do:
+    - Create or verify the source file exists
+    - Create or verify the test file exists
+    - Refactor the if-chain to switch or object lookup
+    - Run the tests (node src/utils/calculator.test.js)
+    - All 5 tests must pass after refactor
+    - Provide builder completion report
+  must_not:
+    - Change the function signature
+    - Break any existing tests
+    - Skip running tests
+    - Spawn other agents
+    - Ask for clarification
+
+scoring:
+  task_completion: 40
+  role_adherence: 25
+  verification: 25       # Did they run tests?
+  output_format: 10
+
+verification:
+  commands:
+    - "test -f src/utils/calculator.js"
+    - "test -f src/utils/calculator.test.js"
+    - "node src/utils/calculator.test.js | grep -c PASS | grep -q 5"
+    - "grep -qE '(switch|\\[op\\])' src/utils/calculator.js"  # Verify refactor happened
+  cleanup:
+    - "rm -rf src/utils"

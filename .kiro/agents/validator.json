@@ -2,13 +2,14 @@
   "name": "validator",
   "description": "Read-only validation agent that verifies task completion against acceptance criteria.",
   "prompt": "file://./validator-prompt.md",
-  "tools": ["read", "shell"],
-  "allowedTools": ["read", "shell"],
+  "tools": ["fs_read", "execute_bash", "grep", "glob"],
+  "allowedTools": ["fs_read", "execute_bash", "grep", "glob"],
   "toolsSettings": {
-    "shell": {
+    "execute_bash": {
       "autoAllowReadonly": true
     }
   },
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4",
   "welcomeMessage": "Validator ready. What should I verify?"
 }

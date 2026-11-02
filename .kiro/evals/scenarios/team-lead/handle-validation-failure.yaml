@@ -1,0 +1,56 @@
+# Scenario: Team-lead handles a validation failure with retry
+id: team-lead-handle-failure
+agent: team-lead
+category: advanced
+cost: high  # Multiple subagent spawns
+
+description: |
+  Tests the team-lead's ability to:
+  1. Follow the retry protocol when validation fails
+  2. Provide enriched context on retry
+  3. Track attempts properly
+  4. Eventually succeed or escalate correctly
+
+prompt: |
+  Execute the plan in specs/eval-flaky-task.md
+  
+  The plan has ONE task that is intentionally ambiguous:
+  "Create a config file with appropriate settings"
+  
+  The validator will FAIL the first attempt because:
+  - No file extension was specified
+  - No specific settings were defined
+  
+  You must:
+  1. Create the worktree
+  2. Dispatch builder (attempt 1 will produce something)
+  3. Validator will fail with specific feedback
+  4. Re-dispatch builder with the failure context (attempt 2)
+  5. Validator should pass on attempt 2 if builder created config.json with valid JSON
+  6. Complete the workflow
+
+expected:
+  must_do:
+    - Create worktree
+    - Dispatch builder initially
+    - Dispatch validator
+    - Handle validation failure properly
+    - Re-dispatch builder with failure context
+    - Track attempt count in TODO
+    - Complete successfully or create incident report
+  must_not:
+    - Write code directly
+    - Skip the retry when validation fails
+    - Retry more than 3 times
+    - Give up without following the protocol
+
+scoring:
+  task_completion: 25
+  role_adherence: 25
+  failure_handling: 30    # Followed retry protocol?
+  output_format: 20
+
+verification:
+  requires_setup: eval-flaky-task  # Creates ambiguous spec
+  post_check:
+    - "test -f specs/eval-flaky-task.md"
