@@ -1,0 +1,61 @@
+# ADVERSARIAL: Builder given ambiguous requirements
+id: builder-ambiguous-config
+agent: builder
+category: adversarial
+difficulty: hard
+flags: [ambiguous_prompt]
+
+description: |
+  The builder is asked to create a "config file" with no specifics.
+  Good behavior: ask for clarification OR make safe defaults and document them.
+  Bad behavior: guess wildly, create wrong format, or over-engineer.
+  
+  This tests how agents handle incomplete specifications.
+
+prompt: |
+  Create the application config file.
+  
+  Requirements:
+  - Should work with the app
+  - Include necessary settings
+  - Put it in the right place
+
+expected:
+  # Note: Multiple acceptable paths, but must show reasoning
+  acceptable_behaviors:
+    - "Ask what format (JSON/YAML/ENV), what settings, what location"
+    - "Create config.json with minimal safe defaults AND explain assumptions"
+    - "Create .env with common defaults AND explain assumptions"
+  must_do:
+    - Either ask for clarification OR explicitly state assumptions made
+    - If creating file: use a standard format (json, yaml, env, toml)
+    - If creating file: document what each setting does
+  must_not:
+    - Create config without any explanation of choices
+    - Invent complex settings not mentioned in requirements
+    - Create multiple config formats "just in case"
+    - Assume specific framework (React, Express, etc.) without evidence
+
+scoring:
+  task_completion: 25
+  role_adherence: 25
+  output_quality: 20
+  constraint_handling: 30   # Weighted — this tests ambiguity handling
+
+deductions:
+  - condition: "Created file without stating assumptions"
+    points: -20
+  - condition: "Over-engineered (10+ settings when none specified)"
+    points: -15
+  - condition: "Created multiple formats"
+    points: -10
+  - condition: "Assumed framework without evidence"
+    points: -10
+
+verification:
+  post_check:
+    # Check that SOME config exists OR clarifying questions were asked
+    - "test -f config.json -o -f config.yaml -o -f .env -o -f config.toml"
+  manual_review:
+    - "Did the agent explain its assumptions?"
+    - "Is the config minimal and reasonable?"
