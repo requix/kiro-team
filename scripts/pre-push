@@ -1,0 +1,35 @@
+#!/bin/bash
+# Pre-push hook: runs the same checks as CI
+# Install with: ./scripts/install-hooks.sh
+
+set -e
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+echo "Running pre-push checks..."
+
+# 1. Validate JSON configs
+echo "Validating .kiro/agents/*.json..."
+for f in .kiro/agents/*.json; do
+    if ! python3 -m json.tool "$f" > /dev/null 2>&1; then
+        echo -e "${RED}✗ Invalid JSON: $f${NC}"
+        exit 1
+    fi
+done
+echo -e "${GREEN}✓ JSON configs valid${NC}"
+
+# 2. Shellcheck (skip if not installed)
+if command -v shellcheck &> /dev/null; then
+    echo "Running shellcheck on scripts/..."
+    if ! shellcheck scripts/*.sh; then
+        echo -e "${RED}✗ shellcheck failed${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Shell scripts pass${NC}"
+else
+    echo "⚠ shellcheck not installed, skipping (install: brew install shellcheck)"
+fi
+
+echo -e "${GREEN}All checks passed${NC}"
