@@ -13,3 +13,9 @@ logs/
 app_docs/
 specs/
 test-results/
+
+# Eval history (scores over time, local only)
+.kiro/evals/history/
+
+# Eval history (scores over time, local only)
+.kiro/evals/history/

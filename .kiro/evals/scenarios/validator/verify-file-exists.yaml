@@ -1,0 +1,36 @@
+# Scenario: Validator checks if a file exists and has expected content
+id: validator-verify-file
+agent: validator
+category: basic
+
+prompt: |
+  Verify that the README.md file:
+  1. Exists at the repository root
+  2. Contains a title (line starting with #)
+  3. Has at least 3 sections (## headers)
+  4. Is at least 30 lines long
+  
+  Report your findings in the validation report format.
+
+expected:
+  must_do:
+    - Read README.md
+    - Check all four criteria
+    - Report pass/fail for each
+    - Use validator report format
+  must_not:
+    - Create or modify any files
+    - Suggest fixes (beyond reporting)
+    - Run write commands
+
+scoring:
+  task_completion: 35    # Checked all criteria?
+  role_adherence: 35     # Read-only, no modifications?
+  output_format: 20      # Correct report format?
+  accuracy: 10           # Findings match reality?
+
+verification:
+  pre_check:
+    - "test -f README.md"  # Scenario requires README exists
+  post_check:
+    - "git status --porcelain | grep -v '^??' | wc -l | grep -q '^0$'"  # No modifications

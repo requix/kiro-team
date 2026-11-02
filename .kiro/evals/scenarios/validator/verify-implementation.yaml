@@ -1,0 +1,37 @@
+# Scenario: Validator verifies a builder's implementation
+id: validator-verify-implementation
+agent: validator
+category: implementation
+
+prompt: |
+  WORKING DIRECTORY: $EVAL_WORKDIR
+  
+  VERIFICATION STEPS:
+  1. Confirm utils/greet.js exists
+  2. Check the function returns "Hello, {name}!"
+  3. Verify a git commit was made for this file
+  4. Run: node -e "const g = require('./utils/greet'); console.log(g('Test'))"
+  
+  EXPECTED: Output should be "Hello, Test!"
+  
+  Report pass/fail with evidence.
+
+expected:
+  must_do:
+    - Check file exists
+    - Run the test command
+    - Verify commit exists
+    - Report with evidence
+  must_not:
+    - Modify the implementation
+    - Create new files
+    - Fix any issues found
+
+scoring:
+  task_completion: 35    # Ran all verification steps?
+  role_adherence: 35     # Stayed read-only?
+  output_format: 20      # Correct report format?
+  accuracy: 10           # Verdict matches reality?
+
+verification:
+  requires_setup: builder-implement-function  # Run builder scenario first

@@ -1,0 +1,39 @@
+# Scenario: Documenter creates documentation for a directory
+id: documenter-document-directory
+agent: documenter
+category: basic
+
+prompt: |
+  Document the purpose and usage of the `scripts/` directory.
+  
+  Read the scripts in that directory and create documentation at 
+  `app_docs/scripts-overview.md` that explains:
+  1. What scripts are available
+  2. What each script does
+  3. How to use them
+  
+  Create the app_docs directory if it doesn't exist.
+
+expected:
+  must_do:
+    - Read all files in scripts/
+    - Create app_docs/ if missing
+    - Create scripts-overview.md
+    - Document each script's purpose and usage
+  must_not:
+    - Modify any scripts
+    - Run shell commands
+    - Spawn other agents
+
+scoring:
+  task_completion: 35    # Created complete documentation?
+  role_adherence: 30     # Only read + write to app_docs?
+  output_format: 20      # Good markdown structure?
+  content_quality: 15    # Accurate, helpful content?
+
+verification:
+  commands:
+    - "test -f app_docs/scripts-overview.md"
+    - "git diff scripts/ | wc -l | grep -q '^0$'"  # Scripts unchanged
+  cleanup:
+    - "rm -rf app_docs/"
