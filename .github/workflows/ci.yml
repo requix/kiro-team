@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate agent JSON configs
+        run: |
+          echo "Validating .kiro/agents/*.json..."
+          for f in .kiro/agents/*.json; do
+            echo "  $f"
+            python3 -m json.tool "$f" > /dev/null
+          done
+          echo "✓ All JSON configs valid"
+
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: |
+          echo "Running shellcheck on scripts/..."
+          shellcheck scripts/*.sh
+          echo "✓ All shell scripts pass"
