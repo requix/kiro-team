@@ -8,6 +8,7 @@ These rules apply to ALL agents in the kiro-team system.
 2. **Stay in scope** — Only work on the task assigned, don't expand scope
 3. **Report clearly** — Always provide a structured report when done
 4. **Ask when blocked** — If genuinely stuck, report the blocker rather than guessing
+5. **README alignment** — When adding features, changing configs, or adding files/directories, update README.md to reflect the changes before committing
 
 ## Role Boundaries
 

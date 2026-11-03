@@ -234,6 +234,17 @@ After final validation passes, the team lead spawns the documenter agent:
 │   ├── validator-prompt.md     ← Validator behavior
 │   ├── documenter.json         ← Documenter config
 │   └── documenter-prompt.md    ← Documenter behavior
+├── evals/
+│   ├── scenarios/              ← Behavioral test scenarios
+│   │   ├── builder/            ← 5 scenarios (incl. adversarial)
+│   │   ├── validator/          ← 4 scenarios (incl. adversarial)
+│   │   ├── documenter/         ← 2 scenarios (incl. adversarial)
+│   │   └── team-lead/          ← 3 scenarios
+│   ├── rubric.yaml             ← Scoring criteria (v2.0)
+│   ├── baselines/              ← Named baseline results
+│   └── history/                ← Run results (gitignored)
+├── steering/
+│   └── agent-constraints.md    ← Universal rules for all agents
 ├── prompts/
 │   └── (deprecated - migrated to skills)
 └── skills/
@@ -241,6 +252,10 @@ After final validation passes, the team lead spawns the documenter agent:
         └── SKILL.md            ← Planning skill (invoked with @)
 
 scripts/
+├── validate-agents.sh          ← Static validation (67 checks)
+├── run-evals.sh                ← List/run behavioral evals
+├── install-hooks.sh            ← Install git hooks
+├── pre-push                    ← Pre-push validation hook
 ├── worktree-create.sh          ← Creates isolated worktree for builder
 └── worktree-merge.sh           ← Merges builder worktree and cleans up
 ```
@@ -255,85 +270,103 @@ Each agent is defined by a JSON config + a markdown prompt:
 ```json
 {
   "name": "team-lead",
-  "tools": ["read", "subagent", "todo"],
-  "allowedTools": ["read", "subagent", "todo"],
+  "tools": ["fs_read", "subagent", "todo"],
+  "allowedTools": ["fs_read", "subagent", "todo"],
   "toolsSettings": {
     "subagent": {
       "trustedAgents": ["builder", "validator", "documenter"]
     }
   },
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4"
 }
 ```
 
 Key points:
 - Has `subagent` tool to spawn builders, validators, and documenter
-- Does NOT have `write` or `shell` — cannot modify files directly
+- Does NOT have `fs_write` or `execute_bash` — cannot modify files directly
 - Can use `todo` tool for task tracking (experimental, enable separately)
 - `trustedAgents` allows spawning without permission prompts each time
+- Receives steering constraints automatically via `resources`
 
 
 **builder.json** — the implementer:
 ```json
 {
   "name": "builder",
-  "tools": ["read", "write", "shell"],
-  "allowedTools": ["read", "write", "shell"],
+  "tools": ["fs_read", "fs_write", "execute_bash"],
+  "allowedTools": ["fs_read", "fs_write", "execute_bash"],
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4"
 }
 ```
 
 Key points:
-- Has `read`,`write` and `shell` — can create/modify files and run commands
+- Has `fs_read`, `fs_write` and `execute_bash` — can create/modify files and run commands
 - Does NOT have `subagent` — cannot spawn other agents
+- Receives steering constraints automatically via `resources`
 
 **validator.json** — the verifier:
 ```json
 {
   "name": "validator",
-  "tools": ["read", "shell"],
+  "tools": ["fs_read", "execute_bash", "grep", "glob"],
   "toolsSettings": {
-    "shell": { "autoAllowReadonly": true }
+    "execute_bash": { "autoAllowReadonly": true }
   },
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4"
 }
 ```
 
 Key points:
-- Has `read` and `shell` (read-only) — can inspect but not modify
-- Does NOT have `write` — cannot change files
+- Has `fs_read`, `execute_bash` (read-only), `grep` and `glob` — can inspect but not modify
+- Does NOT have `fs_write` — cannot change files
 - Shell is auto-allowed for read-only commands
+- `grep`/`glob` enable code search within subagent context
 
 **documenter.json** — the documentation generator:
 ```json
 {
   "name": "documenter",
-  "tools": ["read", "write"],
-  "allowedTools": ["read", "write"],
+  "tools": ["fs_read", "fs_write"],
+  "allowedTools": ["fs_read", "fs_write"],
+  "resources": ["file://.kiro/steering/**/*.md"],
   "model": "claude-sonnet-4"
 }
 ```
 
 Key points:
-- Has `read` and `write` — can inspect files and create documentation
-- Does NOT have `shell` — documentation generation is purely file-based
+- Has `fs_read` and `fs_write` — can inspect files and create documentation
+- Does NOT have `execute_bash` — documentation generation is purely file-based
 - Does NOT have `subagent` — cannot spawn other agents
+- Receives steering constraints automatically via `resources`
+
+### Steering Files
+
+All agents receive shared constraints via the `resources` field:
+
+```json
+"resources": ["file://.kiro/steering/**/*.md"]
+```
+
+This auto-injects `.kiro/steering/agent-constraints.md` into every agent's context, ensuring consistent behavior rules across the team.
 
 ### Design Principles
 
 Each agent gets only the tools it needs (least privilege):
 
 ```
-Team Lead:  read, subagent (+ todo in main session)
+Team Lead:  fs_read, subagent (+ todo in main session)
             ↑ can read and delegate, but CANNOT write files
 
-Builder:    read, write, shell
+Builder:    fs_read, fs_write, execute_bash
             ↑ can modify files, but CANNOT spawn agents
 
-Validator:  read, shell (read-only)
-            ↑ can inspect, but CANNOT modify anything
+Validator:  fs_read, execute_bash (read-only), grep, glob
+            ↑ can inspect and search, but CANNOT modify anything
 
-Documenter: read, write
+Documenter: fs_read, fs_write
             ↑ can read files and generate docs, but CANNOT run commands or spawn agents
 ```
 
@@ -681,14 +714,14 @@ The biggest difference is task coordination. In Claude Code, builders call `Task
 Tools NOT available in the subagent runtime (per [Kiro docs](https://kiro.dev/docs/cli/chat/subagents#tool-availability)):
 
 - `todo` — task tracking
-- `grep` — search file contents
-- `glob` — find files by pattern
 - `web_search` / `web_fetch` — web access
 - `use_aws` — AWS commands
 - `introspect` — CLI info
 - `thinking` — reasoning tool
 
-If your agent config includes these tools, they'll be silently unavailable when the agent runs as a subagent.
+> **Note:** `grep` and `glob` ARE available in subagents when explicitly configured in the agent's `tools` array (as done for the validator agent).
+
+If your agent config includes unavailable tools, they'll be silently unavailable when the agent runs as a subagent.
 
 ## Requirements
 
@@ -697,6 +730,68 @@ If your agent config includes these tools, they'll be silently unavailable when 
   ```bash
   kiro-cli settings chat.enableTodoList true
   ```
+
+## Agent Validation & Evaluation
+
+### Static Validation
+
+Run 67 static checks on agent configs before committing:
+
+```bash
+bash scripts/validate-agents.sh
+```
+
+Checks include:
+- JSON syntax and schema validation
+- Prompt file existence and structure
+- Tool configuration consistency
+- Required fields presence
+
+### Behavioral Evaluation
+
+Run behavioral scenarios to test agent judgment:
+
+```bash
+# List available scenarios
+bash scripts/run-evals.sh --all
+
+# Run specific agent's scenarios
+bash scripts/run-evals.sh --agent builder
+
+# Run single scenario
+bash scripts/run-evals.sh builder/ambiguous-config
+```
+
+14 scenarios total, including 4 adversarial tests:
+- `builder/ambiguous-config` — handling vague requirements
+- `builder/conflicting-constraints` — recognizing contradictions
+- `validator/temptation-trap-fix` — read-only discipline when fix is obvious
+- `documenter/incomplete-source` — not inventing features from TODOs
+
+### Pre-push Hook
+
+Install the validation hook to catch issues before push:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+This runs `validate-agents.sh` automatically on every `git push`.
+
+## Contributing
+
+Before publishing changes:
+
+1. Run validation:
+   ```bash
+   bash scripts/validate-agents.sh
+   ```
+
+2. For significant changes, run evals:
+   ```bash
+   bash scripts/run-evals.sh --all
+   ```
+
 
 ## License
 
