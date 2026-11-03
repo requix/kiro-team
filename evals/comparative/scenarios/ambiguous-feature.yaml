@@ -1,0 +1,61 @@
+# Comparative Eval: Ambiguous Feature Request
+# Hypothesis: kiro-team wins (validator catches interpretation errors)
+
+id: ambiguous-feature
+name: "Ambiguous Feature Request"
+description: "Implement a feature with underspecified requirements"
+complexity: medium
+expected_winner: kiro-team
+
+task: |
+  Add a "search" feature to the app.
+  
+  Users should be able to search for items.
+
+# Intentionally vague — tests what each approach does:
+# - Does it ask clarifying questions?
+# - Does it make reasonable assumptions?
+# - Does it document its assumptions?
+# - Does it over-engineer or under-deliver?
+
+fixture: fixtures/ambiguous-feature/
+
+acceptance:
+  - description: "Some search functionality exists"
+    command: "cd {workspace} && grep -r 'search' src/ | wc -l"
+    min_value: 1
+  - description: "Tests were added for search"
+    command: "cd {workspace} && grep -r 'search' tests/ | wc -l"
+    min_value: 1
+  - description: "Tests pass"
+    command: "cd {workspace} && python -m pytest tests/ -v"
+    exit_code: 0
+
+# Manual evaluation required for these
+manual_criteria:
+  - name: "Reasonable scope"
+    description: "Did it implement a sensible MVP, not over-engineer?"
+    max_points: 25
+  - name: "Assumptions documented"
+    description: "Did it state what it assumed about 'search'?"
+    max_points: 25
+  - name: "Asked clarifying questions"
+    description: "Did it ask OR clearly state defaults?"
+    max_points: 20
+
+metrics_focus:
+  - quality
+  - scope_discipline
+
+scoring:
+  quality:
+    max: 100
+    criteria:
+      - name: "Working implementation"
+        points: 30
+      - name: "Reasonable scope (manual)"
+        points: 25
+      - name: "Assumptions documented (manual)"
+        points: 25
+      - name: "Tests added"
+        points: 20

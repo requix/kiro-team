@@ -1,0 +1,45 @@
+# Comparative Eval: Simple Bug Fix
+# Hypothesis: kiro-default wins (less overhead for trivial task)
+
+id: simple-bugfix
+name: "Simple Bug Fix"
+description: "Fix an off-by-one error in a single file"
+complexity: low
+expected_winner: kiro-default
+
+task: |
+  Fix the off-by-one error in src/counter.py.
+  
+  The `count_items()` function returns n+1 instead of n.
+  Fix it so the test passes.
+
+fixture: fixtures/simple-bugfix/
+
+setup:
+  - command: "cd {fixture} && git init && git add -A && git commit -m 'initial'"
+
+acceptance:
+  - description: "Bug is fixed (no +1)"
+    file: src/counter.py
+    not_pattern: "return len\\(items\\) \\+ 1"
+  - description: "Tests pass"
+    command: "cd {workspace} && python -m pytest tests/ -v"
+    exit_code: 0
+  - description: "No unrelated changes"
+    command: "cd {workspace} && git diff --stat HEAD~1 | wc -l"
+    max_value: 3  # At most 3 lines of diff output
+
+metrics_focus:
+  - tokens
+  - time
+
+scoring:
+  quality:
+    max: 100
+    criteria:
+      - name: "Bug fixed correctly"
+        points: 50
+      - name: "Tests pass"
+        points: 30
+      - name: "No scope creep"
+        points: 20
