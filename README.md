@@ -733,6 +733,42 @@ If your agent config includes unavailable tools, they'll be silently unavailable
 
 ## Agent Validation & Evaluation
 
+### Comparative Evaluation (kiro-team vs kiro-default)
+
+Compare when multi-agent orchestration outperforms standard single-agent mode:
+
+```bash
+# Run all comparative scenarios
+cd evals/comparative
+bash runners/run-comparison.sh scenarios/simple-bugfix.yaml
+bash runners/run-comparison.sh scenarios/multi-file-refactor.yaml
+bash runners/run-comparison.sh scenarios/ambiguous-feature.yaml
+```
+
+Results go to `evals/comparative/results/<scenario>/` with metrics and acceptance scores.
+
+**Current findings** (3 scenarios tested):
+
+| Scenario | Complexity | kiro-default | kiro-team | Winner |
+|----------|------------|--------------|-----------|--------|
+| simple-bugfix | Low | 100% (21s) | 100% (51s) | kiro-default |
+| multi-file-refactor | Medium | 100% (58s) | 100% (158s) | kiro-default |
+| ambiguous-feature | Medium | 100% (29s) | 33% (29s) | kiro-default |
+
+**Key insight**: kiro-team's clarification protocol (asking questions before acting) hurts in automated/fire-and-forget scenarios. kiro-default makes reasonable assumptions and proceeds, which scores higher in evals where no human responds.
+
+**When to prefer kiro-team**:
+- Interactive sessions where humans can answer clarifying questions
+- Very complex tasks with many dependencies
+- Tasks requiring specialized knowledge across multiple domains
+
+**When to prefer kiro-default**:
+- Automated pipelines (CI/CD, cron jobs)
+- Well-defined tasks with clear acceptance criteria
+- Fire-and-forget scenarios
+
+See `evals/comparative/results/SUMMARY.md` for full analysis.
+
 ### Static Validation
 
 Run 67 static checks on agent configs before committing:
