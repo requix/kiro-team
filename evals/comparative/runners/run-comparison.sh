@@ -1,6 +1,15 @@
 #!/bin/bash
 # Run a scenario on both kiro-default and kiro-team, collect metrics
-# Usage: ./run-comparison.sh <scenario.yaml> [--all]
+# Usage: ./run-comparison.sh <scenario.yaml> [--model <model>] [--all] [--jev]
+#
+# Examples:
+#   ./run-comparison.sh scenarios/simple-bugfix.yaml
+#   ./run-comparison.sh scenarios/simple-bugfix.yaml --model claude-sonnet-4
+#   ./run-comparison.sh --all --model claude-sonnet-4
+#   ./run-comparison.sh --all --jev  # Enable Jev pre-check in validator
+#
+# Environment:
+#   TYPESAFE_API_KEY - Required for --jev mode (Jev validator pre-check)
 
 set -e
 
@@ -10,13 +19,68 @@ SCENARIOS_DIR="$EVAL_DIR/scenarios"
 FIXTURES_DIR="$EVAL_DIR/fixtures"
 RESULTS_DIR="$EVAL_DIR/results"
 
+# Parse arguments
+MODEL=""
+RUN_ALL=false
+SCENARIO=""
+USE_JEV=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --model)
+            MODEL="$2"
+            shift 2
+            ;;
+        --all)
+            RUN_ALL=true
+            shift
+            ;;
+        --jev)
+            USE_JEV=true
+            shift
+            ;;
+        *)
+            SCENARIO="$1"
+            shift
+            ;;
+    esac
+done
+
+# Check Jev requirements
+if [[ "$USE_JEV" == true ]]; then
+    # Try to load from .env if not in environment
+    if [[ -z "$TYPESAFE_API_KEY" ]]; then
+        ENV_FILE="/home/kirocrew/projects/kiro-team/.env"
+        if [[ -f "$ENV_FILE" ]]; then
+            export $(grep -E '^TYPESAFE_API_KEY=' "$ENV_FILE" | xargs)
+        fi
+    fi
+    
+    if [[ -z "$TYPESAFE_API_KEY" ]]; then
+        echo "ERROR: --jev requires TYPESAFE_API_KEY"
+        echo "Set it in /home/kirocrew/projects/kiro-team/.env or environment"
+        exit 1
+    fi
+    echo "Jev pre-check enabled for validator"
+fi
+
 run_scenario() {
     local SCENARIO="$1"
     local SCENARIO_ID=$(basename "$SCENARIO" .yaml)
-    local RESULT_DIR="$RESULTS_DIR/$SCENARIO_ID"
+    
+    # Add model suffix to results dir if model specified
+    local RESULT_SUFFIX=""
+    if [[ -n "$MODEL" ]]; then
+        RESULT_SUFFIX="-${MODEL}"
+    fi
+    if [[ "$USE_JEV" == true ]]; then
+        RESULT_SUFFIX="${RESULT_SUFFIX}-jev"
+    fi
+    local RESULT_DIR="$RESULTS_DIR/${SCENARIO_ID}${RESULT_SUFFIX}"
     
     echo "========================================"
     echo "Scenario: $SCENARIO_ID"
+    [[ -n "$MODEL" ]] && echo "Model: $MODEL"
     echo "========================================"
     
     # Extract fixture path
@@ -61,12 +125,12 @@ with open('$SCENARIO') as f:
     # Run kiro-default
     echo ""
     echo "--- Running kiro-default ---"
-    "$SCRIPT_DIR/run-kiro-default.sh" "$SCENARIO" "$WORKSPACE_DEFAULT" "$RESULT_DIR/kiro-default" || true
+    "$SCRIPT_DIR/run-kiro-default.sh" "$SCENARIO" "$WORKSPACE_DEFAULT" "$RESULT_DIR/kiro-default" "$MODEL" || true
     
     # Run kiro-team
     echo ""
     echo "--- Running kiro-team ---"
-    "$SCRIPT_DIR/run-kiro-team.sh" "$SCENARIO" "$WORKSPACE_TEAM" "$RESULT_DIR/kiro-team" || true
+    "$SCRIPT_DIR/run-kiro-team.sh" "$SCENARIO" "$WORKSPACE_TEAM" "$RESULT_DIR/kiro-team" "$MODEL" || true
     
     # Collect metrics
     echo ""
@@ -98,8 +162,9 @@ with open('$SCENARIO') as f:
     echo "========================================"
 }
 
-if [[ "$1" == "--all" ]]; then
+if [[ "$RUN_ALL" == true ]]; then
     echo "Running all comparative scenarios..."
+    [[ -n "$MODEL" ]] && echo "Using model: $MODEL"
     for scenario in "$SCENARIOS_DIR"/*.yaml; do
         run_scenario "$scenario"
         echo ""
@@ -110,13 +175,16 @@ if [[ "$1" == "--all" ]]; then
     python3 "$EVAL_DIR/metrics/report.py" "$RESULTS_DIR" > "$RESULTS_DIR/comparison-report.md"
     echo "Report: $RESULTS_DIR/comparison-report.md"
 else
-    if [[ -z "$1" ]]; then
-        echo "Usage: $0 <scenario.yaml> | --all"
+    if [[ -z "$SCENARIO" ]]; then
+        echo "Usage: $0 <scenario.yaml> [--model <model>]"
+        echo "       $0 --all [--model <model>]"
+        echo ""
+        echo "Models: claude-sonnet-4, claude-opus-4, etc."
         echo ""
         echo "Available scenarios:"
         ls -1 "$SCENARIOS_DIR"/*.yaml 2>/dev/null | xargs -I{} basename {} .yaml
         exit 1
     fi
     
-    run_scenario "$1"
+    run_scenario "$SCENARIO"
 fi

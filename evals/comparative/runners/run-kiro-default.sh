@@ -1,15 +1,16 @@
 #!/bin/bash
 # Run a scenario using kiro-default (standard kiro-cli single-agent mode)
-# Usage: ./run-kiro-default.sh <scenario.yaml> <workspace> [log_dir]
+# Usage: ./run-kiro-default.sh <scenario.yaml> <workspace> [log_dir] [model]
 
 set -e
 
 SCENARIO="$1"
 WORKSPACE="$2"
 LOG_DIR="${3:-results/$(basename "$SCENARIO" .yaml)/kiro-default}"
+MODEL="${4:-}"  # Optional model override (e.g., claude-sonnet-4, claude-opus-4)
 
 if [[ -z "$SCENARIO" || -z "$WORKSPACE" ]]; then
-    echo "Usage: $0 <scenario.yaml> <workspace> [log_dir]"
+    echo "Usage: $0 <scenario.yaml> <workspace> [log_dir] [model]"
     exit 1
 fi
 
@@ -26,9 +27,16 @@ with open('$SCENARIO') as f:
 echo "=== Running kiro-default ===" | tee "$LOG_DIR/run.log"
 echo "Scenario: $SCENARIO" | tee -a "$LOG_DIR/run.log"
 echo "Workspace: $WORKSPACE" | tee -a "$LOG_DIR/run.log"
+[[ -n "$MODEL" ]] && echo "Model: $MODEL" | tee -a "$LOG_DIR/run.log"
 echo "Started: $(date -Iseconds)" | tee -a "$LOG_DIR/run.log"
 
 START_TIME=$(date +%s)
+
+# Build model flag if specified
+MODEL_FLAG=""
+if [[ -n "$MODEL" ]]; then
+    MODEL_FLAG="--model $MODEL"
+fi
 
 # Run kiro-cli with default agent in non-interactive mode
 # --trust-all-tools allows autonomous operation
@@ -37,6 +45,7 @@ START_TIME=$(date +%s)
 cd "$WORKSPACE"
 kiro-cli chat \
     --agent kiro_default \
+    $MODEL_FLAG \
     --trust-all-tools \
     --no-interactive \
     --output-format stream-json \
