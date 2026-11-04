@@ -1,0 +1,10 @@
+# Ignore results (regenerated on each run)
+results/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Temp workspaces
+/tmp/

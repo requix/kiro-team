@@ -1,0 +1,62 @@
+# Comparative Eval: Validator Feedback Loop
+# Hypothesis: kiro-team wins because validator catches edge case the builder misses
+
+id: validator-feedback
+name: "Validator Feedback - Edge Case Trap"
+description: "Implement pagination with a subtle edge case. First implementation usually fails validation."
+complexity: high
+expected_winner: kiro-team
+
+task: |
+  Add pagination to the item list endpoint.
+  
+  Requirements:
+  - page_size parameter (default 10, max 100)
+  - page parameter (1-indexed, default 1)
+  - Return: items, total_count, total_pages, current_page, has_next, has_prev
+  - Handle edge cases: empty list, page beyond range, invalid inputs
+  
+  The existing tests must still pass. Add comprehensive pagination tests.
+
+fixture: fixtures/validator-feedback/
+
+acceptance:
+  - description: "Pagination function exists"
+    file: "src/api.py"
+    pattern: "def paginate"
+  - description: "Returns pagination metadata"
+    command: "cd {workspace} && grep -E 'total_count|total_pages|has_next|has_prev' src/api.py | wc -l"
+    min_value: 4
+  - description: "Handles page_size max"
+    command: "cd {workspace} && grep -E 'max.*100|100.*max|min\\(.*100' src/api.py | wc -l"
+    min_value: 1
+  - description: "Edge case tests exist"
+    command: "cd {workspace} && grep -E 'empty|beyond|invalid|zero|negative' tests/test_api.py | wc -l"
+    min_value: 3
+  - description: "All tests pass"
+    command: "cd {workspace} && python -m pytest tests/ -v"
+    exit_code: 0
+  - description: "Zero items edge case handled"
+    command: "cd {workspace} && python -c \"from src.api import paginate; r = paginate([], 1, 10); assert r['total_pages'] == 0 or r['total_pages'] == 1, f'Expected 0 or 1 for empty list, got {r}'\""
+    exit_code: 0
+
+# The trap: Common mistakes a naive implementation makes:
+# 1. total_pages = ceil(total/page_size) gives 0 for empty list, but page 1 should still be valid
+# 2. Off-by-one on page bounds (0-indexed vs 1-indexed confusion)
+# 3. has_next/has_prev wrong on boundary pages
+# 4. Not clamping page_size to max 100
+#
+# A validator running tests should catch these and send builder back
+
+scoring:
+  quality:
+    max: 100
+    criteria:
+      - name: "Basic pagination works"
+        points: 25
+      - name: "Metadata correct"
+        points: 20
+      - name: "Edge cases handled"
+        points: 30
+      - name: "Tests comprehensive"
+        points: 25

@@ -1,0 +1,62 @@
+# Comparative Eval: Validation Trap
+# Hypothesis: kiro-team wins because validator catches subtle bugs
+
+id: validation-trap
+name: "Validation Trap - Race Condition"
+description: "Implement a cache with expiry. Naive implementation has a race condition."
+complexity: high
+expected_winner: kiro-team
+
+task: |
+  Add a time-based cache to the data processor.
+  
+  Requirements:
+  - Cache results for 60 seconds
+  - After 60 seconds, fetch fresh data
+  - The cache must be thread-safe
+  
+  Implement in src/processor.py and add tests.
+
+fixture: fixtures/validation-trap/
+
+acceptance:
+  - description: "Cache class exists"
+    file: "src/processor.py"
+    pattern: "class.*Cache"
+  - description: "Thread safety implemented"
+    command: "cd {workspace} && grep -E 'Lock|RLock|threading|concurrent' src/processor.py | wc -l"
+    min_value: 1
+  - description: "Expiry logic exists"
+    command: "cd {workspace} && grep -E 'time\\.|datetime|expire|ttl' src/processor.py | wc -l"
+    min_value: 1
+  - description: "Tests exist"
+    command: "cd {workspace} && grep -c 'def test_' tests/test_processor.py"
+    min_value: 3
+  - description: "Tests pass"
+    command: "cd {workspace} && python -m pytest tests/ -v"
+    exit_code: 0
+  - description: "Thread safety test exists"
+    command: "cd {workspace} && grep -E 'thread|concurrent|parallel' tests/test_processor.py | wc -l"
+    min_value: 1
+
+# The trap: a naive implementation might:
+# 1. Check expiry, then fetch — race between check and fetch
+# 2. Not lock during the entire get-or-fetch operation
+# 3. Have TOCTOU (time-of-check to time-of-use) bugs
+#
+# kiro-team's validator should catch these if it runs concurrent tests
+
+scoring:
+  quality:
+    max: 100
+    criteria:
+      - name: "Cache exists"
+        points: 15
+      - name: "Expiry works"
+        points: 20
+      - name: "Thread-safe implementation"
+        points: 30
+      - name: "Thread safety tests"
+        points: 20
+      - name: "All tests pass"
+        points: 15

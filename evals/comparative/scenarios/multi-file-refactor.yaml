@@ -1,0 +1,56 @@
+# Comparative Eval: Multi-File Refactor
+# Hypothesis: kiro-team wins (coordination benefits)
+
+id: multi-file-refactor
+name: "Multi-File Refactor"
+description: "Rename a function across 5 files with tests"
+complexity: medium
+expected_winner: kiro-team
+
+task: |
+  Rename the function `get_user_data()` to `fetch_user_profile()` across the entire codebase.
+  
+  Requirements:
+  1. Update the function definition in src/api/users.py
+  2. Update all call sites (there are 4 files that import it)
+  3. Update the tests
+  4. Ensure all tests still pass
+  5. Commit with message "refactor: rename get_user_data to fetch_user_profile"
+
+fixture: fixtures/multi-file-refactor/
+
+acceptance:
+  - description: "Function renamed in definition"
+    file: src/services/user_service.py
+    pattern: "def fetch_user_profile"
+    not_pattern: "def get_user_data"
+  - description: "All imports updated"
+    command: "cd {workspace} && grep -r 'get_user_data' src/ | wc -l"
+    max_value: 0
+  - description: "Tests updated"
+    command: "cd {workspace} && grep -r 'get_user_data' tests/ | wc -l"
+    max_value: 0
+  - description: "Tests pass"
+    command: "cd {workspace} && python -m pytest tests/ -v"
+    exit_code: 0
+  - description: "Clean commit"
+    command: "cd {workspace} && git log -1 --oneline | grep -q 'refactor:'"
+    exit_code: 0
+
+metrics_focus:
+  - quality
+  - tokens
+  - errors  # Track if either approach misses a call site
+
+scoring:
+  quality:
+    max: 100
+    criteria:
+      - name: "All call sites found"
+        points: 40
+      - name: "Tests updated"
+        points: 20
+      - name: "Tests pass"
+        points: 25
+      - name: "Clean commit"
+        points: 15

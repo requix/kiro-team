@@ -1,10 +1,26 @@
 # Kiro Team: Multi-Agent Orchestration for Kiro CLI
 
-A team orchestration system that enables multiple AI agents to collaborate on complex tasks inside [Kiro CLI](https://kiro.dev).
+A working multi-agent system you can copy into your project and run. Four specialized agents — team-lead, builder, validator, documenter — coordinate through a shared plan to build features.
+
+This is also a reference implementation. If you want to learn how custom agents work in Kiro CLI, how to wire up agent-to-agent communication, or how to build your own orchestration patterns, this repo shows one complete approach.
+
+## Why This Exists
+
+Three reasons to look at kiro-team:
+
+**1. Production use on complex tasks.** When a task touches multiple files and needs validation, the builder-validator loop catches integration bugs that single-agent mode misses. The overhead is real (~1.5-2x slower), but so are the bugs it prevents.
+
+**2. Learning how agents work.** Each agent config is a JSON file plus a markdown prompt. The team-lead spawns subagents, passes them instructions, and receives results back. If you want to build your own multi-agent system in Kiro CLI, this is a working example to dissect.
+
+**3. A place to experiment.** The repo includes:
+- **Worktree isolation** — each spec runs in its own git worktree, so you can run two specs in parallel without conflicts
+- **Behavioral evals** — 14 scenarios that test agent judgment, including adversarial cases
+- **Comparative evals** — measure kiro-team vs kiro-default on time, tokens, and quality
+- **Complexity routing** — automatic Mode S (fast, single agent) vs Mode B (full orchestration) based on task analysis
 
 ## How It Works
 
-A team-lead agent reads a plan, delegates tasks to specialized subagents (builders, validators, and a documenter), and tracks progress. The team-lead is the central coordinator — subagents execute their assigned work and report results back.
+A team-lead agent reads a plan, delegates tasks to specialized subagents, and tracks progress. Subagents do their assigned work and report back.
 
 ```
 You ──→ @plan-with-team Build a REST API...
@@ -732,6 +748,63 @@ If your agent config includes unavailable tools, they'll be silently unavailable
   ```
 
 ## Agent Validation & Evaluation
+
+### Comparative Evaluation (kiro-team vs kiro-default)
+
+Compare when multi-agent orchestration outperforms standard single-agent mode:
+
+```bash
+# Run all comparative scenarios
+cd evals/comparative
+bash runners/run-comparison.sh scenarios/simple-bugfix.yaml
+bash runners/run-comparison.sh scenarios/multi-file-refactor.yaml
+bash runners/run-comparison.sh scenarios/ambiguous-feature.yaml
+```
+
+Results go to `evals/comparative/results/<scenario>/` with metrics and acceptance scores.
+
+**Current findings** (5 scenarios tested):
+
+| Scenario | Complexity | kiro-default | kiro-team | Ratio |
+|----------|------------|--------------|-----------|-------|
+| simple-bugfix | Low | 100% (15s) | 100% (29s) | 1.9x |
+| multi-file-refactor | Medium | 100% (58s) | 100% (100s) | 1.7x |
+| validator-feedback | Medium | 100% | 100% | 1.9x |
+| validation-trap | High | varies | 100% | 2.1x |
+| ambiguous-feature | Medium | 100% (29s) | 33% (29s) | — |
+
+**Key insight**: kiro-team adds ~1.5-2x overhead for coordination. That overhead pays off when validation catches real bugs. On simple tasks, it just slows you down.
+
+## When to Use kiro-team
+
+**Use it when:**
+- The task touches multiple files with dependencies between them
+- You are working in an unfamiliar codebase and want a second check
+- The change is high-stakes and you would manually review it anyway
+- You want to learn how multi-agent orchestration works
+
+**Skip it when:**
+- The task is a single-file fix with clear requirements
+- You are running in CI/CD or another automated context (kiro-team may ask clarifying questions)
+- Speed matters more than double-checking
+
+The `ambiguous-feature` scenario shows the trade-off clearly: kiro-team asked for clarification and waited; kiro-default made reasonable assumptions and shipped. In an automated eval with no human to answer, kiro-default won. In an interactive session where you can answer, kiro-team's questions might save you a rework cycle.
+
+### Complexity Routing
+
+The repo includes automatic routing based on task complexity:
+
+```
+Simple task (single file, <20 lines, clear scope)
+    └─→ builder-fast: skip orchestration, ~2x faster
+
+Complex task (multi-file, architecture, ambiguous)
+    └─→ full orchestration: team-lead + builders + validators
+```
+
+This runs by default. Simple tasks get fast execution; complex tasks get validation. You can disable it in `.kiro/config.yaml` if you prefer manual control.
+
+See `evals/comparative/results/SUMMARY.md` for the full breakdown.
 
 ### Static Validation
 
