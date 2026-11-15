@@ -48,6 +48,34 @@ done
 
 validate_model "$MODEL"
 
+# Both arms must run the same model, or the comparison measures the model
+# difference too. With no --model, use the model the team agents pin.
+if [[ -z "$MODEL" ]]; then
+    MODEL="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("model", ""))' \
+        "$EVAL_DIR/../../.kiro/agents/team-lead.json")"
+    if [[ -z "$MODEL" ]]; then
+        echo "ERROR: no --model given and team-lead.json pins none" >&2
+        exit 1
+    fi
+    validate_model "$MODEL"
+    echo "No --model given; using team-lead's model for both arms: $MODEL"
+fi
+
+# Delete a workspace. find avoids a recursive force-remove.
+cleanup_workspace() {
+    find "$1" -type f -delete 2>/dev/null || true
+    find "$1" -depth -type d -empty -delete 2>/dev/null || true
+}
+
+# Save everything the agent changed since eval-base (committed, staged,
+# unstaged and new files) as changes.patch, plus a file list.
+save_changes() {
+    local ws="$1" out="$2"
+    git -C "$ws" add -A >/dev/null 2>&1 || true
+    git -C "$ws" diff --binary --cached eval-base > "$out/changes.patch" 2>/dev/null || true
+    git -C "$ws" diff --cached --name-status eval-base > "$out/changed-files.txt" 2>/dev/null || true
+}
+
 run_scenario() {
     local scenario="$1"
     local scenario_id result_dir ws_default ws_team status_default=0 status_team=0
@@ -84,10 +112,16 @@ run_scenario() {
     if [[ ! -f "$result_dir/kiro-team/exit_code.txt" ]]; then
         # The runner stopped before kiro-cli started (e.g. agents missing).
         echo "ERROR: kiro-team runner failed before the agent ran (exit $status_team)" >&2
+        cleanup_workspace "$ws_default"
+        cleanup_workspace "$ws_team"
         return 1
     fi
     [[ $status_default -ne 0 ]] && echo "WARNING: kiro-default exited with $status_default"
     [[ $status_team -ne 0 ]] && echo "WARNING: kiro-team exited with $status_team"
+
+    # Keep what each agent changed: the workspaces are deleted at the end.
+    save_changes "$ws_default" "$result_dir/kiro-default"
+    save_changes "$ws_team" "$result_dir/kiro-team"
 
     echo ""
     echo "--- Collecting metrics ---"
@@ -105,11 +139,8 @@ run_scenario() {
         --team-workspace "$ws_team" \
         --output "$result_dir/acceptance.json"
 
-    # Cleanup workspaces (keep results). find avoids a recursive force-remove.
-    for ws in "$ws_default" "$ws_team"; do
-        find "$ws" -type f -delete 2>/dev/null || true
-        find "$ws" -depth -type d -empty -delete 2>/dev/null || true
-    done
+    cleanup_workspace "$ws_default"
+    cleanup_workspace "$ws_team"
 
     echo ""
     echo "Results: $result_dir/"

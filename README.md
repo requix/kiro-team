@@ -8,7 +8,7 @@ This is also a reference implementation. If you want to learn how custom agents 
 
 Three reasons to look at kiro-team:
 
-**1. Production use on complex tasks.** When a task touches multiple files and needs validation, the builder-validator loop catches integration bugs that single-agent mode misses. The overhead is real (~1.5-2x slower), but so are the bugs it prevents.
+**1. Production use on complex tasks.** When a task touches multiple files and needs validation, a validator checks the builder's work before it lands. The overhead is real: early runs took roughly 1.7-2.1x the wall-clock time of single-agent mode. Whether the validator catches enough bugs to pay for that is what the comparative evals are for.
 
 **2. Learning how agents work.** Each agent config is a JSON file plus a markdown prompt. The team-lead spawns subagents, passes them instructions, and receives results back. If you want to build your own multi-agent system in Kiro CLI, this is a working example to dissect.
 
@@ -764,7 +764,7 @@ bash runners/run-comparison.sh scenarios/simple-bugfix.yaml
 
 Scenarios: `simple-bugfix`, `multi-file-refactor`, `ambiguous-feature`, `validation-trap`, `validator-feedback`.
 
-Results go to `evals/comparative/results/<scenario>/` (gitignored): `metrics.json` (time, credits, exit codes) and `acceptance.json` (quality checks). Quality checks run the code where they can, so an untouched fixture scores 14-33%, not 100%. See [evals/comparative/README.md](evals/comparative/README.md) for the details.
+Results go to `evals/comparative/results/<scenario>/` (gitignored): `metrics.json` (time, credits, model, exit codes), `acceptance.json` (quality checks), and each arm's `changes.patch`. Quality checks run the code where they can, so an untouched fixture scores at most 33%. kiro-team runs with its full setup (agents, steering, worktree scripts) and gets the task as a plan in `specs/`. Both arms use the same model. See [evals/comparative/README.md](evals/comparative/README.md) for the details.
 
 **Findings so far:** Early runs put kiro-team at roughly 1.7-2.1x the wall-clock time of kiro-default. Treat that as anecdotal: it comes from single runs, and the quality scores from those runs are withdrawn because the old checks also passed on untouched code. Rerun with the current harness before quoting numbers.
 
@@ -781,7 +781,7 @@ Results go to `evals/comparative/results/<scenario>/` (gitignored): `metrics.jso
 - You are running in CI/CD or another automated context (kiro-team may ask clarifying questions)
 - Speed matters more than double-checking
 
-The `ambiguous-feature` scenario shows the trade-off clearly: kiro-team asked for clarification and waited; kiro-default made reasonable assumptions and shipped. In an automated eval with no human to answer, kiro-default won. In an interactive session where you can answer, kiro-team's questions might save you a rework cycle.
+One trade-off to expect: on a vague task, kiro-team may stop and ask clarifying questions where kiro-default picks reasonable defaults and ships. With no human to answer, as in an automated eval, that costs kiro-team. In an interactive session, the questions might save you a rework cycle. The `ambiguous-feature` scenario is there to measure this.
 
 ### Static Validation
 

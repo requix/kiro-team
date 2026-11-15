@@ -6,6 +6,7 @@ name: "Simple Bug Fix"
 description: "Fix an off-by-one error in a single file"
 complexity: low
 expected_winner: kiro-default
+hypothesis_metric: time  # which winner the hypothesis is about: time, credits or quality
 
 task: |
   Fix the off-by-one error in src/counter.py.
@@ -24,21 +25,10 @@ acceptance:
     exit_code: 0
   - description: "No unrelated changes"
     # eval-base is the tag the runner puts on the fixture's initial commit.
-    # Counts changed files, committed or not. Only src/counter.py should change.
-    command: "git diff --name-only eval-base | wc -l"
+    # Counts changed code files, committed or not. Only src/counter.py should change.
+    command: "git diff --name-only eval-base -- src tests | wc -l"
     max_value: 1
 
 metrics_focus:
   - tokens
   - time
-
-scoring:
-  quality:
-    max: 100
-    criteria:
-      - name: "Bug fixed correctly"
-        points: 50
-      - name: "Tests pass"
-        points: 30
-      - name: "No scope creep"
-        points: 20

@@ -6,6 +6,7 @@ name: "Ambiguous Feature Request"
 description: "Implement a feature with underspecified requirements"
 complexity: medium
 expected_winner: kiro-team
+hypothesis_metric: quality  # which winner the hypothesis is about: time, credits or quality
 
 task: |
   Add a "search" feature to the app.
@@ -46,16 +47,3 @@ manual_criteria:
 metrics_focus:
   - quality
   - scope_discipline
-
-scoring:
-  quality:
-    max: 100
-    criteria:
-      - name: "Working implementation"
-        points: 30
-      - name: "Reasonable scope (manual)"
-        points: 25
-      - name: "Assumptions documented (manual)"
-        points: 25
-      - name: "Tests added"
-        points: 20

@@ -40,9 +40,9 @@ MODEL_ARGS=()
 # --output-format stream-json writes ACP events as JSON Lines (implies --no-interactive)
 cd "$WORKSPACE"
 status=0
-run_kiro "$LOG_DIR" \
+RUN_MODEL="$MODEL" run_kiro "$LOG_DIR" \
     --agent kiro_default \
-    "${MODEL_ARGS[@]}" \
+    ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} \
     --trust-all-tools \
     --no-interactive \
     --output-format stream-json \

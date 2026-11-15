@@ -11,7 +11,8 @@ run's ACP events to output.log as JSON Lines. This module reads that file:
   them. kiro-cli usually does not, so tokens are often absent.
 - Tool calls: `tool_call` session updates.
 - Wall-clock time: duration.txt, written by the runner.
-- Exit status: exit_code.txt, written by the runner.
+- Exit status and model: exit_code.txt and model.txt, written by the runner.
+- Files changed: changed-files.txt, saved before the workspace is deleted.
 
 A metric with no data is recorded as null, never as 0, so a missing log can
 never look like a cheap run. A comparison with missing data on either side
@@ -81,13 +82,23 @@ def parse_stream_log(output_log: Path) -> dict:
     return found
 
 
+def _read_text(path: Path) -> str | None:
+    try:
+        return path.read_text().strip()
+    except OSError:
+        return None
+
+
 def parse_run(log_dir: Path) -> dict:
     """Collect every metric for one runner's log directory."""
     stream = parse_stream_log(log_dir / "output.log")
+    changed = _read_text(log_dir / "changed-files.txt")
     tokens_total = None
     if stream["tokens_input"] is not None or stream["tokens_output"] is not None:
         tokens_total = (stream["tokens_input"] or 0) + (stream["tokens_output"] or 0)
     return {
+        "model": _read_text(log_dir / "model.txt"),
+        "files_changed": len(changed.splitlines()) if changed is not None else None,
         "exit_code": _read_int(log_dir / "exit_code.txt"),
         "duration_seconds": _read_int(log_dir / "duration.txt"),
         "credits": round(stream["credits"], 4) if stream["credits"] is not None else None,
@@ -127,12 +138,22 @@ def build_result(scenario: dict, default_metrics: dict, team_metrics: dict) -> d
             warnings.append(f"{label} output.log has no stream-json events")
         if m["credits"] is None and m["tokens_total"] is None:
             warnings.append(f"{label} has no cost data (credits or tokens)")
+        if m.get("files_changed") == 0:
+            warnings.append(f"{label} changed no files (did the agent halt?)")
+        if m.get("model") in (None, "", "unset"):
+            warnings.append(f"{label} ran without an explicit model")
+    if default_metrics.get("model") != team_metrics.get("model"):
+        warnings.append(
+            f"arms ran different models: kiro-default={default_metrics.get('model')}, "
+            f"kiro-team={team_metrics.get('model')}"
+        )
     return {
         "scenario": {
             "id": scenario["id"],
             "name": scenario["name"],
             "complexity": scenario.get("complexity", "unknown"),
             "expected_winner": scenario.get("expected_winner", "unknown"),
+            "hypothesis_metric": scenario.get("hypothesis_metric", "quality"),
         },
         "kiro_default": default_metrics,
         "kiro_team": team_metrics,

@@ -88,17 +88,22 @@ def generate_report(results: list) -> str:
         acc = r.get("acceptance", {})
         actual = acc.get("quality_winner", "n/a")
         _tally(quality_wins, actual)
-        expected = r["metrics"].get("scenario", {}).get("expected_winner", "")
-        if actual != "n/a":
+        # Judge the hypothesis on the metric it is about: an overhead
+        # hypothesis on time or credits, a correctness one on quality.
+        meta = r["metrics"].get("scenario", {})
+        expected = meta.get("expected_winner", "")
+        metric = meta.get("hypothesis_metric", "quality")
+        observed = actual if metric == "quality" else comp.get(f"{metric}_winner", "n/a")
+        if observed in ("kiro-default", "kiro-team", "tie"):
             hypothesis_scored += 1
-            hypothesis_correct += expected == actual
+            hypothesis_correct += expected == observed
 
     def row(name, wins):
         return f"| {name} | {wins['kiro-default']} | {wins['kiro-team']} | {wins['tie']} | {wins['n/a']} |"
 
     accuracy = (
         f"{hypothesis_correct}/{hypothesis_scored} ({hypothesis_correct / hypothesis_scored * 100:.0f}% correct)"
-        if hypothesis_scored else "N/A (no acceptance data)"
+        if hypothesis_scored else "N/A (no data on the hypothesis metrics)"
     )
     lines.extend([
         f"**Scenarios evaluated:** {total}",
@@ -130,7 +135,8 @@ def generate_report(results: list) -> str:
             f"### {scenario.get('name', r['scenario_id'])}",
             "",
             f"**Complexity:** {scenario.get('complexity', 'unknown')} | "
-            f"**Expected winner:** {scenario.get('expected_winner', 'unknown')}",
+            f"**Expected winner:** {scenario.get('expected_winner', 'unknown')} "
+            f"(on {scenario.get('hypothesis_metric', 'quality')})",
             "",
             "| Metric | kiro-default | kiro-team | Winner |",
             "|--------|--------------|-----------|--------|",

@@ -23,12 +23,13 @@ PY
 }
 
 # Run kiro-cli, tee its output to the log, and record timing and exit code.
-# Usage: run_kiro <log_dir> <kiro-cli chat args...>
+# Usage: RUN_MODEL=<model> run_kiro <log_dir> <kiro-cli chat args...>
 # Returns kiro-cli's exit code, not tee's.
 run_kiro() {
     local log_dir="$1"
     shift
     local start end status
+    echo "${RUN_MODEL:-unset}" > "$log_dir/model.txt"
     start=$(date +%s)
     set +e
     kiro-cli chat "$@" 2>&1 | tee "$log_dir/output.log"

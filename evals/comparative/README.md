@@ -49,6 +49,7 @@ name: "Simple Bug Fix"
 description: "Fix an off-by-one error in a single file"
 complexity: low
 expected_winner: kiro-default  # Hypothesis
+hypothesis_metric: time        # time, credits or quality
 
 task: |
   Fix the off-by-one error in src/counter.py.
@@ -66,7 +67,7 @@ acceptance:
     exit_code: 0
   # Counting command: output must be an int within bounds
   - description: "No unrelated changes"
-    command: "git diff --name-only eval-base | wc -l"
+    command: "git diff --name-only eval-base -- src tests | wc -l"
     max_value: 1
 ```
 
@@ -82,7 +83,7 @@ Prefer checks that run the code over checks that grep it. A grep often matches t
 python3 metrics/check_acceptance.py --scenario scenarios/<name>.yaml --baseline
 ```
 
-The baseline should fail every check except "tests pass" style checks. The harness tests enforce this for every scenario.
+On an untouched fixture, only two kinds of check may pass: "tests pass" (the fixture's own tests are green) and "no unrelated changes" (nothing changed). The harness tests enforce this with an explicit list of descriptions, for every scenario.
 
 ## Running Comparisons
 
@@ -100,7 +101,25 @@ The baseline should fail every check except "tests pass" style checks. The harne
 python3 metrics/report.py results/ > results/comparison-report.md
 ```
 
-`run-kiro-team.sh` copies the agents from this repo's `.kiro/agents` into the workspace. It exits with an error if they are missing, instead of running some other agent.
+Both arms run the same model. Without `--model`, the runner uses the model that `.kiro/agents/team-lead.json` pins, and passes it to kiro-default too.
+
+`run-kiro-team.sh` sets the workspace up the way kiro-team expects to run: `.kiro/agents`, `.kiro/steering` and `.kiro/templates` from this repo, `scripts/worktree-create.sh` and `scripts/worktree-merge.sh`, and the task written as a plan at `specs/<scenario>.md`. team-lead is told to execute that plan. The setup is committed and `eval-base` moves onto it, so checks and diffs see only what the agents changed. The runner exits with an error if the agents are missing.
+
+## What Each Run Leaves
+
+Each arm's directory under `results/<scenario>-<model>/` holds:
+
+- `output.log`: kiro-cli's stream-json events
+- `run.log`, `duration.txt`, `exit_code.txt`, `model.txt`
+- `changes.patch` and `changed-files.txt`: everything the agent changed since `eval-base`. Workspaces are deleted after scoring, so this is what you review by hand.
+
+`metrics.json` warns when an arm exits non-zero, changed no files, has no cost data, or the arms ran different models. A team run that changed nothing usually means team-lead halted.
+
+## Hypotheses and Manual Criteria
+
+Each scenario names an `expected_winner` and a `hypothesis_metric` (`time`, `credits` or `quality`). The report judges the hypothesis on that metric. simple-bugfix expects kiro-default to be faster, not to score higher.
+
+`manual_criteria` (in ambiguous-feature) are for a human reading `changes.patch`. No code scores them. The automated quality score is the share of acceptance checks that pass, unweighted.
 
 ## Testing the Harness
 
@@ -109,7 +128,7 @@ python3 metrics/report.py results/ > results/comparison-report.md
 python -m pytest evals/comparative/tests -q
 ```
 
-The tests check that untouched fixtures score low, that reference solutions score 100%, that a cache without a lock fails the concurrency check, and that the collector and report handle missing data. A fake `kiro-cli` covers the runners.
+The tests check that untouched fixtures score low, that reference solutions score 100%, that a cache without a lock fails the concurrency check, and that the collector and report handle missing data. A fake `kiro-cli` covers the runners: model parity, the kiro-team workspace setup, saved changes and exit codes.
 
 ## Expected Findings
 

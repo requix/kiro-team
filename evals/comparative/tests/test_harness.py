@@ -46,15 +46,17 @@ def by_description(result: dict) -> dict:
 # --- Baseline: doing nothing must not score well -----------------------------
 
 
+# Checks allowed to pass on an untouched fixture: the fixture's own tests are
+# green, and doing nothing changes nothing. Every other check must fail.
+BASELINE_MAY_PASS = {"Tests pass", "All tests pass", "No unrelated changes"}
+
+
 @pytest.mark.parametrize("scenario", SCENARIOS, ids=lambda p: p.stem)
 def test_untouched_fixture_scores_low(scenario):
     result = check_acceptance.baseline_score(scenario)
-    passed = [c["description"] for c in result["checks"] if c["passed"]]
+    passed = {c["description"] for c in result["checks"] if c["passed"]}
+    assert passed <= BASELINE_MAY_PASS, f"{scenario.stem}: unexpected passes {passed - BASELINE_MAY_PASS}"
     assert result["score"] <= 34, f"{scenario.stem} baseline {result['score']:.0f}%: {passed}"
-    # The only checks allowed to pass on an untouched fixture are "tests pass"
-    # (the fixture's own tests are green) and "no unrelated changes".
-    for description in passed:
-        assert "pass" in description.lower() or "unrelated" in description.lower(), description
 
 
 # --- Reference solutions: correct work must score 100% -----------------------
@@ -331,10 +333,17 @@ def test_report_exits_nonzero_without_results(tmp_path):
 
 
 def _fake_kiro(bin_dir: Path, exit_code: int) -> None:
+    """A kiro-cli stand-in. It records its args and workspace listing in
+    $FAKE_KIRO_SEEN/<agent>.txt, then prints one credit event."""
     bin_dir.mkdir()
     script = bin_dir / "kiro-cli"
     script.write_text(textwrap.dedent(f"""\
         #!/bin/bash
+        agent=""
+        prev=""
+        for a in "$@"; do [[ "$prev" == "--agent" ]] && agent="$a"; prev="$a"; done
+        {{ printf '%s\\n' "$@"; echo "---"; find . -path ./.git -prune -o -type f -print | sort; }} \\
+            > "$FAKE_KIRO_SEEN/$agent.txt"
         echo '{{"params":{{"meteringUsage":[{{"unit":"credit","value":0.5}}]}}}}'
         exit {exit_code}
         """))
@@ -345,6 +354,8 @@ def _run_comparison(tmp_path: Path, *args: str) -> subprocess.CompletedProcess:
     env = dict(os.environ)
     env["PATH"] = f"{tmp_path / 'bin'}{os.pathsep}{env['PATH']}"
     env["EVAL_RESULTS_DIR"] = str(tmp_path / "results")
+    env["FAKE_KIRO_SEEN"] = str(tmp_path / "seen")
+    (tmp_path / "seen").mkdir(exist_ok=True)
     return subprocess.run(
         ["bash", str(EVAL_DIR / "runners/run-comparison.sh"), *args],
         capture_output=True, text=True, env=env, timeout=300,
@@ -355,7 +366,7 @@ def test_runner_records_kiro_failure(tmp_path):
     _fake_kiro(tmp_path / "bin", exit_code=3)
     proc = _run_comparison(tmp_path, str(EVAL_DIR / "scenarios/simple-bugfix.yaml"))
     assert proc.returncode == 0, proc.stdout + proc.stderr
-    result_dir = tmp_path / "results/simple-bugfix"
+    result_dir = next((tmp_path / "results").glob("simple-bugfix*"))
     assert (result_dir / "kiro-team/exit_code.txt").read_text().strip() == "3"
     metrics = json.loads((result_dir / "metrics.json").read_text())
     assert "kiro-team exited with code 3" in metrics["warnings"]
@@ -368,3 +379,65 @@ def test_runner_rejects_unsafe_model(tmp_path):
     assert proc.returncode != 0
     assert "invalid model id" in proc.stderr
     assert not (tmp_path / "results").exists()
+
+
+def test_team_workspace_is_provisioned(tmp_path):
+    _fake_kiro(tmp_path / "bin", exit_code=0)
+    proc = _run_comparison(tmp_path, str(EVAL_DIR / "scenarios/simple-bugfix.yaml"))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    seen = (tmp_path / "seen/team-lead.txt").read_text()
+    for path in (
+        "./.kiro/agents/team-lead.json",
+        "./.kiro/steering/agent-constraints.md",
+        "./scripts/worktree-create.sh",
+        "./scripts/worktree-merge.sh",
+        "./specs/simple-bugfix.md",
+    ):
+        assert path in seen, f"{path} missing from the team workspace"
+    assert "Execute the plan in specs/simple-bugfix.md." in seen
+    # The default arm gets the plain task and no team setup.
+    default_seen = (tmp_path / "seen/kiro_default.txt").read_text()
+    assert "Fix the off-by-one error" in default_seen
+    assert "./scripts/worktree-create.sh" not in default_seen
+
+
+def test_both_arms_get_the_same_model_by_default(tmp_path):
+    _fake_kiro(tmp_path / "bin", exit_code=0)
+    proc = _run_comparison(tmp_path, str(EVAL_DIR / "scenarios/simple-bugfix.yaml"))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    team_model = json.loads((EVAL_DIR.parent.parent / ".kiro/agents/team-lead.json").read_text())["model"]
+    result_dir = tmp_path / f"results/simple-bugfix-{team_model}"
+    metrics = json.loads((result_dir / "metrics.json").read_text())
+    assert metrics["kiro_default"]["model"] == team_model
+    assert metrics["kiro_team"]["model"] == team_model
+    assert not any("different models" in w for w in metrics["warnings"])
+    for arm in ("kiro-default", "kiro-team"):
+        assert f"--model\n{team_model}" in (tmp_path / "seen" / (
+            "kiro_default.txt" if arm == "kiro-default" else "team-lead.txt")).read_text()
+
+
+def test_changes_are_saved_and_no_change_warns(tmp_path):
+    _fake_kiro(tmp_path / "bin", exit_code=0)
+    proc = _run_comparison(tmp_path, str(EVAL_DIR / "scenarios/simple-bugfix.yaml"))
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    result_dir = next((tmp_path / "results").glob("simple-bugfix*"))
+    for arm in ("kiro-default", "kiro-team"):
+        assert (result_dir / arm / "changes.patch").exists()
+        assert (result_dir / arm / "changed-files.txt").read_text() == ""
+    warnings = json.loads((result_dir / "metrics.json").read_text())["warnings"]
+    assert "kiro-team changed no files (did the agent halt?)" in warnings
+
+
+def test_hypothesis_judged_on_its_metric(tmp_path):
+    scenario_dir = tmp_path / "simple"
+    scenario_dir.mkdir()
+    (scenario_dir / "metrics.json").write_text(json.dumps({
+        "scenario": {"id": "s", "name": "S", "expected_winner": "kiro-default", "hypothesis_metric": "time"},
+        "kiro_default": {}, "kiro_team": {},
+        "comparison": {"time_winner": "kiro-default", "credits_winner": "n/a"},
+    }))
+    (scenario_dir / "acceptance.json").write_text(json.dumps({
+        "kiro_default": {"score": 100}, "kiro_team": {"score": 100}, "quality_winner": "tie",
+    }))
+    text = report.generate_report(report.load_results(tmp_path))
+    assert "**Hypothesis accuracy:** 1/1 (100% correct)" in text

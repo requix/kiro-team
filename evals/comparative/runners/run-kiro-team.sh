@@ -33,10 +33,29 @@ SCENARIO="$(cd "$(dirname "$SCENARIO")" && pwd)/$(basename "$SCENARIO")"
 mkdir -p "$LOG_DIR"
 LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 
-# Copy the team-lead, builder, validator and documenter agents into the workspace
-mkdir -p "$WORKSPACE/.kiro/agents"
-cp -r "$KIRO_TEAM_AGENTS"/. "$WORKSPACE/.kiro/agents/"
-echo "Copied kiro-team agents to workspace"
+# Provision the workspace the way kiro-team expects to run:
+# - .kiro/agents, .kiro/steering, .kiro/templates: agent configs, the
+#   constraints every agent loads, and the incident template
+# - scripts/worktree-*.sh: team-lead's first step creates a worktree, and its
+#   last step merges it back
+# - specs/<scenario>.md: team-lead executes a plan from specs/
+for dir in agents steering templates; do
+    if [[ -d "$REPO_ROOT/.kiro/$dir" ]]; then
+        mkdir -p "$WORKSPACE/.kiro/$dir"
+        cp -r "$REPO_ROOT/.kiro/$dir"/. "$WORKSPACE/.kiro/$dir/"
+    fi
+done
+mkdir -p "$WORKSPACE/scripts" "$WORKSPACE/specs"
+cp "$REPO_ROOT/scripts/worktree-create.sh" "$REPO_ROOT/scripts/worktree-merge.sh" "$WORKSPACE/scripts/"
+
+SCENARIO_ID="$(basename "$SCENARIO" .yaml)"
+PLAN="specs/$SCENARIO_ID.md"
+{
+    echo "# $SCENARIO_ID"
+    echo ""
+    scenario_task "$SCENARIO"
+} > "$WORKSPACE/$PLAN"
+echo ".worktrees/" >> "$WORKSPACE/.git/info/exclude"
 
 # If a model is given, point every agent config at it. Values reach Python
 # through argv, never through the source text.
@@ -57,7 +76,16 @@ PY
     echo "Updated agent configs to use model: $MODEL"
 fi
 
-TASK="$(scenario_task "$SCENARIO")"
+# Commit the setup and move eval-base onto it, so acceptance checks and the
+# saved diff show only what the agents changed.
+git -C "$WORKSPACE" add -A
+git -C "$WORKSPACE" -c user.name=eval -c user.email=eval@example.invalid \
+    commit -q -m "kiro-team setup"
+git -C "$WORKSPACE" tag -f eval-base >/dev/null
+echo "Provisioned kiro-team workspace (agents, steering, scripts, $PLAN)"
+
+# Same task text as kiro-default, delivered the way team-lead takes work: as a plan.
+TASK="Execute the plan in $PLAN."
 
 {
     echo "=== Running kiro-team ==="
@@ -76,9 +104,9 @@ MODEL_ARGS=()
 # --output-format stream-json writes ACP events as JSON Lines (implies --no-interactive)
 cd "$WORKSPACE"
 status=0
-run_kiro "$LOG_DIR" \
+RUN_MODEL="$MODEL" run_kiro "$LOG_DIR" \
     --agent team-lead \
-    "${MODEL_ARGS[@]}" \
+    ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} \
     --trust-all-tools \
     --trust-workspace \
     --no-interactive \

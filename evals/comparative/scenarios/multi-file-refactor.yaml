@@ -6,6 +6,7 @@ name: "Multi-File Refactor"
 description: "Rename a function across 5 files with tests"
 complexity: medium
 expected_winner: kiro-team
+hypothesis_metric: quality  # which winner the hypothesis is about: time, credits or quality
 
 task: |
   Rename the function `get_user_data()` to `fetch_user_profile()` across the entire codebase.
@@ -41,16 +42,3 @@ metrics_focus:
   - quality
   - tokens
   - errors  # Track if either approach misses a call site
-
-scoring:
-  quality:
-    max: 100
-    criteria:
-      - name: "All call sites found"
-        points: 40
-      - name: "Tests updated"
-        points: 20
-      - name: "Tests pass"
-        points: 25
-      - name: "Clean commit"
-        points: 15

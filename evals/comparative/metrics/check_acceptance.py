@@ -148,6 +148,10 @@ def prepare_workspace(fixture: Path, workspace: Path) -> None:
         ["git", "add", "-A"],
         git + ["commit", "-q", "-m", "initial"],
         ["git", "tag", BASE_TAG],
+        # Agents may need to commit (multi-file-refactor asks for it). Give
+        # both arms the same local identity so that never depends on the host.
+        ["git", "config", "user.name", "eval-agent"],
+        ["git", "config", "user.email", "eval-agent@example.invalid"],
     ):
         subprocess.run(cmd, cwd=workspace, check=True, capture_output=True)
 

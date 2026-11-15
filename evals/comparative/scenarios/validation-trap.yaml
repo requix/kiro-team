@@ -6,6 +6,7 @@ name: "Validation Trap - Race Condition"
 description: "Implement a cache with expiry. Naive implementation has a race condition."
 complexity: high
 expected_winner: kiro-team
+hypothesis_metric: quality  # which winner the hypothesis is about: time, credits or quality
 
 task: |
   Add a time-based cache to the data processor.
@@ -49,18 +50,3 @@ acceptance:
 #
 # kiro-team's validator should catch these if it runs concurrent tests.
 # The "thread-safe" check above is that concurrent test.
-
-scoring:
-  quality:
-    max: 100
-    criteria:
-      - name: "Cache exists"
-        points: 15
-      - name: "Expiry works"
-        points: 20
-      - name: "Thread-safe implementation"
-        points: 30
-      - name: "Thread safety tests"
-        points: 20
-      - name: "All tests pass"
-        points: 15

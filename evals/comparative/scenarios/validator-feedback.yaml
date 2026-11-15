@@ -6,6 +6,7 @@ name: "Validator Feedback - Edge Case Trap"
 description: "Implement pagination with a subtle edge case. First implementation usually fails validation."
 complexity: high
 expected_winner: kiro-team
+hypothesis_metric: quality  # which winner the hypothesis is about: time, credits or quality
 
 task: |
   Add pagination to the item list endpoint.
@@ -53,16 +54,3 @@ acceptance:
 # 4. Not clamping page_size to max 100
 #
 # A validator running tests should catch these and send builder back
-
-scoring:
-  quality:
-    max: 100
-    criteria:
-      - name: "Basic pagination works"
-        points: 25
-      - name: "Metadata correct"
-        points: 20
-      - name: "Edge cases handled"
-        points: 30
-      - name: "Tests comprehensive"
-        points: 25
