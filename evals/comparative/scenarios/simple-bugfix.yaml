@@ -15,19 +15,18 @@ task: |
 
 fixture: fixtures/simple-bugfix/
 
-setup:
-  - command: "cd {fixture} && git init && git add -A && git commit -m 'initial'"
-
 acceptance:
   - description: "Bug is fixed (no +1)"
     file: src/counter.py
     not_pattern: "return len\\(items\\) \\+ 1"
   - description: "Tests pass"
-    command: "cd {workspace} && python -m pytest tests/ -v"
+    command: "python -m pytest tests/ -v"
     exit_code: 0
   - description: "No unrelated changes"
-    command: "cd {workspace} && git diff --stat HEAD~1 | wc -l"
-    max_value: 3  # At most 3 lines of diff output
+    # eval-base is the tag the runner puts on the fixture's initial commit.
+    # Counts changed files, committed or not. Only src/counter.py should change.
+    command: "git diff --name-only eval-base | wc -l"
+    max_value: 1
 
 metrics_focus:
   - tokens

@@ -1,110 +1,90 @@
 #!/bin/bash
 # Run a scenario using kiro-team (multi-agent orchestration)
 # Usage: ./run-kiro-team.sh <scenario.yaml> <workspace> [log_dir] [model]
+# Exits with kiro-cli's exit code. Exits 1 before running if the team agents
+# are missing, so a run can never fall back to the wrong agent silently.
 
-set -e
+set -euo pipefail
 
-SCENARIO="$1"
-WORKSPACE="$2"
-LOG_DIR="${3:-results/$(basename "$SCENARIO" .yaml)/kiro-team}"
-MODEL="${4:-}"  # Optional model override (e.g., claude-sonnet-4, claude-opus-4)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=SCRIPTDIR/common.sh
+source "$SCRIPT_DIR/common.sh"
 
+# The agents under test are the ones in this repo (three levels up from runners/).
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+KIRO_TEAM_AGENTS="$REPO_ROOT/.kiro/agents"
+
+SCENARIO="${1:-}"
+WORKSPACE="${2:-}"
 if [[ -z "$SCENARIO" || -z "$WORKSPACE" ]]; then
     echo "Usage: $0 <scenario.yaml> <workspace> [log_dir] [model]"
     exit 1
 fi
+LOG_DIR="${3:-results/$(basename "$SCENARIO" .yaml)/kiro-team}"
+MODEL="${4:-}"  # Optional model override (e.g., claude-sonnet-4)
+validate_model "$MODEL"
 
+if [[ ! -f "$KIRO_TEAM_AGENTS/team-lead.json" ]]; then
+    echo "ERROR: kiro-team agents not found at $KIRO_TEAM_AGENTS (expected team-lead.json)" >&2
+    exit 1
+fi
+
+SCENARIO="$(cd "$(dirname "$SCENARIO")" && pwd)/$(basename "$SCENARIO")"
 mkdir -p "$LOG_DIR"
+LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 
-# Copy kiro-team workspace agents to the test workspace
-# This makes team-lead, builder, validator, documenter available
-KIRO_TEAM_AGENTS="/home/kirocrew/projects/kiro-team/.kiro/agents"
-KIRO_TEAM_SCRIPTS="/home/kirocrew/projects/kiro-team/.kiro/scripts"
+# Copy the team-lead, builder, validator and documenter agents into the workspace
+mkdir -p "$WORKSPACE/.kiro/agents"
+cp -r "$KIRO_TEAM_AGENTS"/. "$WORKSPACE/.kiro/agents/"
+echo "Copied kiro-team agents to workspace"
 
-if [[ -d "$KIRO_TEAM_AGENTS" ]]; then
-    mkdir -p "$WORKSPACE/.kiro/agents"
-    cp -r "$KIRO_TEAM_AGENTS"/* "$WORKSPACE/.kiro/agents/"
-    echo "Copied kiro-team agents to workspace"
-    
-    # Copy scripts (includes jev_precheck.py)
-    if [[ -d "$KIRO_TEAM_SCRIPTS" ]]; then
-        mkdir -p "$WORKSPACE/.kiro/scripts"
-        cp -r "$KIRO_TEAM_SCRIPTS"/* "$WORKSPACE/.kiro/scripts/"
-        echo "Copied kiro-team scripts to workspace"
-    fi
-    
-    # If model is specified, update agent configs to use it
-    # Exception: builder-fast keeps its cheap model for complexity routing
-    if [[ -n "$MODEL" ]]; then
-        for agent_json in "$WORKSPACE/.kiro/agents"/*.json; do
-            if [[ -f "$agent_json" ]]; then
-                agent_name=$(basename "$agent_json" .json)
-                # Keep builder-fast on its cheap model (Haiku) for complexity routing optimization
-                if [[ "$agent_name" == "builder-fast" || "$agent_name" == "validator-fast" ]]; then
-                    echo "Keeping $agent_name on cheap model for speed"
-                    continue
-                fi
-                # Replace the model field in each agent config
-                python3 -c "
-import json
-with open('$agent_json', 'r') as f:
-    data = json.load(f)
-data['model'] = '$MODEL'
-with open('$agent_json', 'w') as f:
-    json.dump(data, f, indent=2)
-"
-            fi
-        done
-        echo "Updated agent configs to use model: $MODEL (except fast agents)"
-    fi
-fi
-
-# Extract task from scenario
-TASK=$(python3 -c "
-import yaml
-with open('$SCENARIO') as f:
-    data = yaml.safe_load(f)
-    print(data['task'])
-")
-
-echo "=== Running kiro-team ===" | tee "$LOG_DIR/run.log"
-echo "Scenario: $SCENARIO" | tee -a "$LOG_DIR/run.log"
-echo "Workspace: $WORKSPACE" | tee -a "$LOG_DIR/run.log"
-[[ -n "$MODEL" ]] && echo "Model: $MODEL" | tee -a "$LOG_DIR/run.log"
-echo "Started: $(date -Iseconds)" | tee -a "$LOG_DIR/run.log"
-
-START_TIME=$(date +%s)
-
-# Build model flag if specified (for team-lead's own model)
-MODEL_FLAG=""
+# If a model is given, point every agent config at it. Values reach Python
+# through argv, never through the source text.
 if [[ -n "$MODEL" ]]; then
-    MODEL_FLAG="--model $MODEL"
+    for agent_json in "$WORKSPACE/.kiro/agents"/*.json; do
+        python3 - "$agent_json" "$MODEL" <<'PY'
+import json
+import sys
+
+path, model = sys.argv[1], sys.argv[2]
+with open(path) as f:
+    data = json.load(f)
+data["model"] = model
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+PY
+    done
+    echo "Updated agent configs to use model: $MODEL"
 fi
 
-# Run kiro-cli with team-lead agent
-# Team-lead will orchestrate builder/validator/documenter as needed
+TASK="$(scenario_task "$SCENARIO")"
+
+{
+    echo "=== Running kiro-team ==="
+    echo "Scenario: $SCENARIO"
+    echo "Workspace: $WORKSPACE"
+    [[ -n "$MODEL" ]] && echo "Model: $MODEL"
+    echo "Started: $(date -Iseconds)"
+} | tee "$LOG_DIR/run.log"
+
+MODEL_ARGS=()
+[[ -n "$MODEL" ]] && MODEL_ARGS=(--model "$MODEL")
+
+# team-lead orchestrates builder/validator/documenter as needed
 # --trust-all-tools allows autonomous operation
-# --no-interactive runs without user input
 # --trust-workspace trusts the workspace agents
+# --output-format stream-json writes ACP events as JSON Lines (implies --no-interactive)
 cd "$WORKSPACE"
-kiro-cli chat \
+status=0
+run_kiro "$LOG_DIR" \
     --agent team-lead \
-    $MODEL_FLAG \
+    "${MODEL_ARGS[@]}" \
     --trust-all-tools \
     --trust-workspace \
     --no-interactive \
     --output-format stream-json \
-    "$TASK" \
-    2>&1 | tee "$LOG_DIR/output.log"
+    "$TASK" || status=$?
 
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
-
-echo "Finished: $(date -Iseconds)" | tee -a "$LOG_DIR/run.log"
-echo "Duration: ${DURATION}s" | tee -a "$LOG_DIR/run.log"
-
-# Save timing
-echo "$DURATION" > "$LOG_DIR/duration.txt"
-
-echo "=== kiro-team complete ==="
+echo "=== kiro-team complete (exit $status) ==="
 echo "Logs: $LOG_DIR/"
+exit "$status"

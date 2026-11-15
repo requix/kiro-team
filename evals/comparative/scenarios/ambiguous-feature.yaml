@@ -22,13 +22,13 @@ fixture: fixtures/ambiguous-feature/
 
 acceptance:
   - description: "Some search functionality exists"
-    command: "cd {workspace} && grep -r 'search' src/ | wc -l"
+    command: "grep -r 'search' src/ | wc -l"
     min_value: 1
   - description: "Tests were added for search"
-    command: "cd {workspace} && grep -r 'search' tests/ | wc -l"
+    command: "grep -r 'search' tests/ | wc -l"
     min_value: 1
   - description: "Tests pass"
-    command: "cd {workspace} && python -m pytest tests/ -v"
+    command: "python -m pytest tests/ -v"
     exit_code: 0
 
 # Manual evaluation required for these

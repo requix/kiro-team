@@ -1,65 +1,53 @@
 #!/bin/bash
 # Run a scenario using kiro-default (standard kiro-cli single-agent mode)
 # Usage: ./run-kiro-default.sh <scenario.yaml> <workspace> [log_dir] [model]
+# Exits with kiro-cli's exit code.
 
-set -e
+set -euo pipefail
 
-SCENARIO="$1"
-WORKSPACE="$2"
-LOG_DIR="${3:-results/$(basename "$SCENARIO" .yaml)/kiro-default}"
-MODEL="${4:-}"  # Optional model override (e.g., claude-sonnet-4, claude-opus-4)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=SCRIPTDIR/common.sh
+source "$SCRIPT_DIR/common.sh"
 
+SCENARIO="${1:-}"
+WORKSPACE="${2:-}"
 if [[ -z "$SCENARIO" || -z "$WORKSPACE" ]]; then
     echo "Usage: $0 <scenario.yaml> <workspace> [log_dir] [model]"
     exit 1
 fi
+LOG_DIR="${3:-results/$(basename "$SCENARIO" .yaml)/kiro-default}"
+MODEL="${4:-}"  # Optional model override (e.g., claude-sonnet-4)
+validate_model "$MODEL"
 
+SCENARIO="$(cd "$(dirname "$SCENARIO")" && pwd)/$(basename "$SCENARIO")"
 mkdir -p "$LOG_DIR"
+LOG_DIR="$(cd "$LOG_DIR" && pwd)"
 
-# Extract task from scenario
-TASK=$(python3 -c "
-import yaml
-with open('$SCENARIO') as f:
-    data = yaml.safe_load(f)
-    print(data['task'])
-")
+TASK="$(scenario_task "$SCENARIO")"
 
-echo "=== Running kiro-default ===" | tee "$LOG_DIR/run.log"
-echo "Scenario: $SCENARIO" | tee -a "$LOG_DIR/run.log"
-echo "Workspace: $WORKSPACE" | tee -a "$LOG_DIR/run.log"
-[[ -n "$MODEL" ]] && echo "Model: $MODEL" | tee -a "$LOG_DIR/run.log"
-echo "Started: $(date -Iseconds)" | tee -a "$LOG_DIR/run.log"
+{
+    echo "=== Running kiro-default ==="
+    echo "Scenario: $SCENARIO"
+    echo "Workspace: $WORKSPACE"
+    [[ -n "$MODEL" ]] && echo "Model: $MODEL"
+    echo "Started: $(date -Iseconds)"
+} | tee "$LOG_DIR/run.log"
 
-START_TIME=$(date +%s)
+MODEL_ARGS=()
+[[ -n "$MODEL" ]] && MODEL_ARGS=(--model "$MODEL")
 
-# Build model flag if specified
-MODEL_FLAG=""
-if [[ -n "$MODEL" ]]; then
-    MODEL_FLAG="--model $MODEL"
-fi
-
-# Run kiro-cli with default agent in non-interactive mode
 # --trust-all-tools allows autonomous operation
-# --no-interactive runs without user input
-# --output-format stream-json captures structured output
+# --output-format stream-json writes ACP events as JSON Lines (implies --no-interactive)
 cd "$WORKSPACE"
-kiro-cli chat \
+status=0
+run_kiro "$LOG_DIR" \
     --agent kiro_default \
-    $MODEL_FLAG \
+    "${MODEL_ARGS[@]}" \
     --trust-all-tools \
     --no-interactive \
     --output-format stream-json \
-    "$TASK" \
-    2>&1 | tee "$LOG_DIR/output.log"
+    "$TASK" || status=$?
 
-END_TIME=$(date +%s)
-DURATION=$((END_TIME - START_TIME))
-
-echo "Finished: $(date -Iseconds)" | tee -a "$LOG_DIR/run.log"
-echo "Duration: ${DURATION}s" | tee -a "$LOG_DIR/run.log"
-
-# Save timing
-echo "$DURATION" > "$LOG_DIR/duration.txt"
-
-echo "=== kiro-default complete ==="
+echo "=== kiro-default complete (exit $status) ==="
 echo "Logs: $LOG_DIR/"
+exit "$status"

@@ -9,8 +9,14 @@ against both workspaces.
 import argparse
 import json
 import re
+import shutil
 import subprocess
+import tempfile
 from pathlib import Path
+
+EVAL_DIR = Path(__file__).resolve().parent.parent
+CHECKS_DIR = EVAL_DIR / "checks"
+BASE_TAG = "eval-base"
 
 
 def check_file_pattern(workspace: Path, check: dict) -> dict:
@@ -52,70 +58,110 @@ def check_file_pattern(workspace: Path, check: dict) -> dict:
     return result
 
 
+def _expand(command: str, workspace: Path) -> str:
+    return command.replace("{workspace}", str(workspace)).replace("{checks}", str(CHECKS_DIR))
+
+
+def _parse_count(proc: subprocess.CompletedProcess) -> tuple[int | None, str]:
+    """Read an integer from a counting command, or explain why not.
+
+    Commands run under bash with pipefail, so a failing step anywhere in the
+    pipeline fails the check. One exception: grep exits 1 when nothing matches,
+    so exit 1 with an output of "0" is read as a real zero.
+    """
+    out = proc.stdout.strip()
+    if proc.returncode != 0 and not (proc.returncode == 1 and out == "0"):
+        err = (proc.stderr.strip().splitlines() or [""])[-1]
+        return None, f"Command failed with exit code {proc.returncode}: {err}"
+    try:
+        return int(out), ""
+    except ValueError:
+        return None, f"Could not parse output as int: {out!r}"
+
+
 def check_command(workspace: Path, check: dict) -> dict:
-    """Run a command and check its result."""
-    command = check["command"].replace("{workspace}", str(workspace))
+    """Run a command in the workspace and check its result."""
+    command = _expand(check["command"], workspace)
     result = {
         "type": "command",
         "command": command,
         "passed": False,
         "details": "",
     }
-    
+
     try:
         proc = subprocess.run(
-            command,
-            shell=True,
+            ["bash", "-o", "pipefail", "-c", command],
             capture_output=True,
             text=True,
-            timeout=60,
+            timeout=check.get("timeout", 120),
             cwd=workspace,
         )
-        
-        # Check exit code
-        if "exit_code" in check:
-            if proc.returncode == check["exit_code"]:
-                result["passed"] = True
-                result["details"] = f"Exit code {proc.returncode} matches expected"
-            else:
-                result["details"] = f"Exit code {proc.returncode} != expected {check['exit_code']}"
-                return result
-        
-        # Check output value
-        output_value = proc.stdout.strip()
-        if "max_value" in check:
-            try:
-                value = int(output_value)
-                if value <= check["max_value"]:
-                    result["passed"] = True
-                    result["details"] = f"Value {value} <= {check['max_value']}"
-                else:
-                    result["details"] = f"Value {value} > max {check['max_value']}"
-            except ValueError:
-                result["details"] = f"Could not parse output as int: {output_value}"
-        
-        if "min_value" in check:
-            try:
-                value = int(output_value)
-                if value >= check["min_value"]:
-                    result["passed"] = True
-                    result["details"] = f"Value {value} >= {check['min_value']}"
-                else:
-                    result["details"] = f"Value {value} < min {check['min_value']}"
-            except ValueError:
-                result["details"] = f"Could not parse output as int: {output_value}"
-        
-        # If no specific check, just verify it ran
-        if "exit_code" not in check and "max_value" not in check and "min_value" not in check:
-            result["passed"] = proc.returncode == 0
-            result["details"] = f"Command completed with exit code {proc.returncode}"
-        
     except subprocess.TimeoutExpired:
         result["details"] = "Command timed out"
+        return result
     except Exception as e:
         result["details"] = f"Error: {e}"
-    
+        return result
+
+    if "exit_code" in check:
+        if proc.returncode != check["exit_code"]:
+            result["details"] = f"Exit code {proc.returncode} != expected {check['exit_code']}"
+            return result
+        result["details"] = f"Exit code {proc.returncode} matches expected"
+
+    if "max_value" in check or "min_value" in check:
+        value, why = _parse_count(proc)
+        if value is None:
+            result["details"] = why
+            return result
+        if "max_value" in check and value > check["max_value"]:
+            result["details"] = f"Value {value} > max {check['max_value']}"
+            return result
+        if "min_value" in check and value < check["min_value"]:
+            result["details"] = f"Value {value} < min {check['min_value']}"
+            return result
+        result["details"] = f"Value {value} within bounds"
+        result["passed"] = True
+        return result
+
+    if "exit_code" in check:
+        result["passed"] = True
+        return result
+
+    # No explicit expectation: the command must succeed.
+    result["passed"] = proc.returncode == 0
+    result["details"] = f"Command completed with exit code {proc.returncode}"
     return result
+
+
+def prepare_workspace(fixture: Path, workspace: Path) -> None:
+    """Copy a fixture into a workspace and commit it, tagged as eval-base.
+
+    The runners and the baseline check share this so both start from the
+    same state.
+    """
+    shutil.copytree(fixture, workspace, dirs_exist_ok=True)
+    git = ["git", "-c", "user.name=eval", "-c", "user.email=eval@example.invalid"]
+    for cmd in (
+        ["git", "init", "-q"],
+        ["git", "add", "-A"],
+        git + ["commit", "-q", "-m", "initial"],
+        ["git", "tag", BASE_TAG],
+    ):
+        subprocess.run(cmd, cwd=workspace, check=True, capture_output=True)
+
+
+def baseline_score(scenario_file: Path) -> dict:
+    """Score the untouched fixture. A good scenario scores low here."""
+    import yaml
+
+    scenario = yaml.safe_load(scenario_file.read_text())
+    fixture = EVAL_DIR / scenario["fixture"]
+    with tempfile.TemporaryDirectory() as tmp:
+        workspace = Path(tmp) / "ws"
+        prepare_workspace(fixture, workspace)
+        return check_acceptance(workspace, scenario.get("acceptance", []))
 
 
 def check_acceptance(workspace: Path, acceptance: list) -> dict:
@@ -158,29 +204,52 @@ def check_acceptance(workspace: Path, acceptance: list) -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Check acceptance criteria")
     parser.add_argument("--scenario", required=True, help="Scenario YAML file")
-    parser.add_argument("--default-workspace", required=True, help="kiro-default workspace")
-    parser.add_argument("--team-workspace", required=True, help="kiro-team workspace")
-    parser.add_argument("--output", required=True, help="Output JSON file")
+    parser.add_argument("--default-workspace", help="kiro-default workspace")
+    parser.add_argument("--team-workspace", help="kiro-team workspace")
+    parser.add_argument("--output", help="Output JSON file")
+    parser.add_argument(
+        "--prepare",
+        metavar="DEST",
+        help="Copy the scenario's fixture into DEST, commit it and tag it eval-base, then exit",
+    )
+    parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Score the untouched fixture and print the result (no agent run)",
+    )
     args = parser.parse_args()
-    
-    # Load scenario
+
+    if args.prepare:
+        import yaml
+        scenario = yaml.safe_load(Path(args.scenario).read_text())
+        fixture = EVAL_DIR / scenario["fixture"]
+        if not fixture.is_dir():
+            parser.error(f"fixture not found: {fixture}")
+        prepare_workspace(fixture, Path(args.prepare))
+        return
+
+    if args.baseline:
+        res = baseline_score(Path(args.scenario))
+        print(f"Baseline (untouched fixture): {res['passed']}/{res['total']} ({res['score']:.0f}%)")
+        for c in res["checks"]:
+            print(f"  [{'PASS' if c['passed'] else 'fail'}] {c['description']}")
+        return
+
+    if not (args.default_workspace and args.team_workspace and args.output):
+        parser.error("--default-workspace, --team-workspace and --output are required")
+
     import yaml
     with open(args.scenario) as f:
         scenario = yaml.safe_load(f)
-    
+
     acceptance = scenario.get("acceptance", [])
-    
     if not acceptance:
         print("No acceptance criteria defined in scenario")
-        result = {
-            "kiro_default": {"passed": 0, "failed": 0, "total": 0, "score": 0, "checks": []},
-            "kiro_team": {"passed": 0, "failed": 0, "total": 0, "score": 0, "checks": []},
-        }
+        empty = {"passed": 0, "failed": 0, "total": 0, "score": 0, "checks": []}
+        result = {"scenario_id": scenario["id"], "kiro_default": empty, "kiro_team": dict(empty), "quality_winner": "tie"}
     else:
-        # Check both workspaces
         default_results = check_acceptance(Path(args.default_workspace), acceptance)
         team_results = check_acceptance(Path(args.team_workspace), acceptance)
-        
         result = {
             "scenario_id": scenario["id"],
             "kiro_default": default_results,
@@ -191,17 +260,16 @@ def main():
                 else "tie"
             ),
         }
-    
-    # Write output
+
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(result, f, indent=2)
-    
+
     print(f"Acceptance results saved to {output_path}")
-    if acceptance:
-        print(f"  kiro-default: {default_results['passed']}/{default_results['total']} ({default_results['score']:.0f}%)")
-        print(f"  kiro-team:    {team_results['passed']}/{team_results['total']} ({team_results['score']:.0f}%)")
+    for key in ("kiro_default", "kiro_team"):
+        r = result[key]
+        print(f"  {key}: {r['passed']}/{r['total']} ({r['score']:.0f}%)")
 
 
 if __name__ == "__main__":

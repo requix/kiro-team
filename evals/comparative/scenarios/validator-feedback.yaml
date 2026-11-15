@@ -11,6 +11,7 @@ task: |
   Add pagination to the item list endpoint.
   
   Requirements:
+  - A function `paginate(items, page=1, page_size=10)` in src/api.py
   - page_size parameter (default 10, max 100)
   - page parameter (1-indexed, default 1)
   - Return: items, total_count, total_pages, current_page, has_next, has_prev
@@ -21,23 +22,28 @@ task: |
 fixture: fixtures/validator-feedback/
 
 acceptance:
-  - description: "Pagination function exists"
-    file: "src/api.py"
-    pattern: "def paginate"
+  # Behavior is checked by calling the code (checks/paginate.py), not by
+  # grepping it. On the untouched fixture every behavioral check fails.
   - description: "Returns pagination metadata"
-    command: "cd {workspace} && grep -E 'total_count|total_pages|has_next|has_prev' src/api.py | wc -l"
-    min_value: 4
-  - description: "Handles page_size max"
-    command: "cd {workspace} && grep -E 'max.*100|100.*max|min\\(.*100' src/api.py | wc -l"
-    min_value: 1
-  - description: "Edge case tests exist"
-    command: "cd {workspace} && grep -E 'empty|beyond|invalid|zero|negative' tests/test_api.py | wc -l"
-    min_value: 3
-  - description: "All tests pass"
-    command: "cd {workspace} && python -m pytest tests/ -v"
+    command: "python3 {checks}/paginate.py metadata"
     exit_code: 0
-  - description: "Zero items edge case handled"
-    command: "cd {workspace} && python -c \"from src.api import paginate; r = paginate([], 1, 10); assert r['total_pages'] == 0 or r['total_pages'] == 1, f'Expected 0 or 1 for empty list, got {r}'\""
+  - description: "Page bounds and has_next/has_prev"
+    command: "python3 {checks}/paginate.py page-bounds"
+    exit_code: 0
+  - description: "Defaults and page_size max 100"
+    command: "python3 {checks}/paginate.py defaults-and-max"
+    exit_code: 0
+  - description: "Empty list handled"
+    command: "python3 {checks}/paginate.py empty"
+    exit_code: 0
+  - description: "Out-of-range and invalid input handled"
+    command: "python3 {checks}/paginate.py out-of-range"
+    exit_code: 0
+  - description: "Pagination tests added"
+    command: "grep -c 'paginate' tests/test_api.py"
+    min_value: 1
+  - description: "All tests pass"
+    command: "python -m pytest tests/ -q"
     exit_code: 0
 
 # The trap: Common mistakes a naive implementation makes:

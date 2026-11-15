@@ -11,7 +11,7 @@ task: |
   Rename the function `get_user_data()` to `fetch_user_profile()` across the entire codebase.
   
   Requirements:
-  1. Update the function definition in src/api/users.py
+  1. Update the function definition in src/services/user_service.py
   2. Update all call sites (there are 4 files that import it)
   3. Update the tests
   4. Ensure all tests still pass
@@ -25,16 +25,16 @@ acceptance:
     pattern: "def fetch_user_profile"
     not_pattern: "def get_user_data"
   - description: "All imports updated"
-    command: "cd {workspace} && grep -r 'get_user_data' src/ | wc -l"
+    command: "grep -r 'get_user_data' src/ | wc -l"
     max_value: 0
-  - description: "Tests updated"
-    command: "cd {workspace} && grep -r 'get_user_data' tests/ | wc -l"
+  - description: "Tests updated (imports and calls; test names may keep the old name)"
+    command: "grep -rwE 'get_user_data' tests/ | wc -l"
     max_value: 0
   - description: "Tests pass"
-    command: "cd {workspace} && python -m pytest tests/ -v"
+    command: "python -m pytest tests/ -v"
     exit_code: 0
-  - description: "Clean commit"
-    command: "cd {workspace} && git log -1 --oneline | grep -q 'refactor:'"
+  - description: "Commit with the requested message"
+    command: "git log -1 --format=%s | grep -qxF 'refactor: rename get_user_data to fetch_user_profile'"
     exit_code: 0
 
 metrics_focus:

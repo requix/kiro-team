@@ -16,7 +16,6 @@ Three reasons to look at kiro-team:
 - **Worktree isolation** — each spec runs in its own git worktree, so you can run two specs in parallel without conflicts
 - **Behavioral evals** — 14 scenarios that test agent judgment, including adversarial cases
 - **Comparative evals** — measure kiro-team vs kiro-default on time, tokens, and quality
-- **Complexity routing** — automatic Mode S (fast, single agent) vs Mode B (full orchestration) based on task analysis
 
 ## How It Works
 
@@ -754,26 +753,20 @@ If your agent config includes unavailable tools, they'll be silently unavailable
 Compare when multi-agent orchestration outperforms standard single-agent mode:
 
 ```bash
-# Run all comparative scenarios
 cd evals/comparative
+
+# Run all five scenarios and write results/comparison-report.md
+bash runners/run-comparison.sh --all
+
+# Or run one scenario
 bash runners/run-comparison.sh scenarios/simple-bugfix.yaml
-bash runners/run-comparison.sh scenarios/multi-file-refactor.yaml
-bash runners/run-comparison.sh scenarios/ambiguous-feature.yaml
 ```
 
-Results go to `evals/comparative/results/<scenario>/` with metrics and acceptance scores.
+Scenarios: `simple-bugfix`, `multi-file-refactor`, `ambiguous-feature`, `validation-trap`, `validator-feedback`.
 
-**Current findings** (5 scenarios tested):
+Results go to `evals/comparative/results/<scenario>/` (gitignored): `metrics.json` (time, credits, exit codes) and `acceptance.json` (quality checks). Quality checks run the code where they can, so an untouched fixture scores 14-33%, not 100%. See [evals/comparative/README.md](evals/comparative/README.md) for the details.
 
-| Scenario | Complexity | kiro-default | kiro-team | Ratio |
-|----------|------------|--------------|-----------|-------|
-| simple-bugfix | Low | 100% (15s) | 100% (29s) | 1.9x |
-| multi-file-refactor | Medium | 100% (58s) | 100% (100s) | 1.7x |
-| validator-feedback | Medium | 100% | 100% | 1.9x |
-| validation-trap | High | varies | 100% | 2.1x |
-| ambiguous-feature | Medium | 100% (29s) | 33% (29s) | — |
-
-**Key insight**: kiro-team adds ~1.5-2x overhead for coordination. That overhead pays off when validation catches real bugs. On simple tasks, it just slows you down.
+**Findings so far:** Early runs put kiro-team at roughly 1.7-2.1x the wall-clock time of kiro-default. Treat that as anecdotal: it comes from single runs, and the quality scores from those runs are withdrawn because the old checks also passed on untouched code. Rerun with the current harness before quoting numbers.
 
 ## When to Use kiro-team
 
@@ -789,22 +782,6 @@ Results go to `evals/comparative/results/<scenario>/` with metrics and acceptanc
 - Speed matters more than double-checking
 
 The `ambiguous-feature` scenario shows the trade-off clearly: kiro-team asked for clarification and waited; kiro-default made reasonable assumptions and shipped. In an automated eval with no human to answer, kiro-default won. In an interactive session where you can answer, kiro-team's questions might save you a rework cycle.
-
-### Complexity Routing
-
-The repo includes automatic routing based on task complexity:
-
-```
-Simple task (single file, <20 lines, clear scope)
-    └─→ builder-fast: skip orchestration, ~2x faster
-
-Complex task (multi-file, architecture, ambiguous)
-    └─→ full orchestration: team-lead + builders + validators
-```
-
-This runs by default. Simple tasks get fast execution; complex tasks get validation. You can disable it in `.kiro/config.yaml` if you prefer manual control.
-
-See `evals/comparative/results/SUMMARY.md` for the full breakdown.
 
 ### Static Validation
 

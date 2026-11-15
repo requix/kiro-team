@@ -10,6 +10,7 @@ Outputs a markdown report summarizing:
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from datetime import datetime
 
@@ -18,7 +19,7 @@ def load_results(results_dir: Path) -> list:
     """Load all scenario results."""
     results = []
     
-    for scenario_dir in results_dir.iterdir():
+    for scenario_dir in sorted(results_dir.iterdir()):
         if not scenario_dir.is_dir():
             continue
         
@@ -45,8 +46,25 @@ def load_results(results_dir: Path) -> list:
     return results
 
 
+WINNERS = ("kiro-default", "kiro-team", "tie", "n/a")
+
+
+def fmt_pct(value) -> str:
+    return f"{value:.0f}%" if isinstance(value, (int, float)) and not isinstance(value, bool) else "N/A"
+
+
+def fmt_num(value, suffix: str = "") -> str:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return "N/A"
+    return f"{value:g}{suffix}"
+
+
+def _tally(counter: dict, key) -> None:
+    counter[key if key in counter else "n/a"] += 1
+
+
 def generate_report(results: list) -> str:
-    """Generate markdown report."""
+    """Generate markdown report. Never raises on missing or partial data."""
     lines = [
         "# Comparative Evaluation Report",
         "",
@@ -55,53 +73,59 @@ def generate_report(results: list) -> str:
         "## Summary",
         "",
     ]
-    
-    # Aggregate stats
+
     total = len(results)
-    token_wins = {"kiro-default": 0, "kiro-team": 0, "tie": 0}
-    time_wins = {"kiro-default": 0, "kiro-team": 0, "tie": 0}
-    quality_wins = {"kiro-default": 0, "kiro-team": 0, "tie": 0}
+    credit_wins = dict.fromkeys(WINNERS, 0)
+    time_wins = dict.fromkeys(WINNERS, 0)
+    quality_wins = dict.fromkeys(WINNERS, 0)
     hypothesis_correct = 0
-    
+    hypothesis_scored = 0
+
     for r in results:
         comp = r["metrics"].get("comparison", {})
-        token_wins[comp.get("token_winner", "tie")] += 1
-        time_wins[comp.get("time_winner", "tie")] += 1
-        
+        _tally(credit_wins, comp.get("credits_winner", "n/a"))
+        _tally(time_wins, comp.get("time_winner", "n/a"))
         acc = r.get("acceptance", {})
-        quality_wins[acc.get("quality_winner", "tie")] += 1
-        
+        actual = acc.get("quality_winner", "n/a")
+        _tally(quality_wins, actual)
         expected = r["metrics"].get("scenario", {}).get("expected_winner", "")
-        actual = acc.get("quality_winner", "")
-        if expected == actual:
-            hypothesis_correct += 1
-    
+        if actual != "n/a":
+            hypothesis_scored += 1
+            hypothesis_correct += expected == actual
+
+    def row(name, wins):
+        return f"| {name} | {wins['kiro-default']} | {wins['kiro-team']} | {wins['tie']} | {wins['n/a']} |"
+
+    accuracy = (
+        f"{hypothesis_correct}/{hypothesis_scored} ({hypothesis_correct / hypothesis_scored * 100:.0f}% correct)"
+        if hypothesis_scored else "N/A (no acceptance data)"
+    )
     lines.extend([
         f"**Scenarios evaluated:** {total}",
         "",
         "### Wins by Category",
         "",
-        "| Category | kiro-default | kiro-team | Tie |",
-        "|----------|--------------|-----------|-----|",
-        f"| Tokens (fewer) | {token_wins['kiro-default']} | {token_wins['kiro-team']} | {token_wins.get('tie', 0)} |",
-        f"| Time (faster) | {time_wins['kiro-default']} | {time_wins['kiro-team']} | {time_wins.get('tie', 0)} |",
-        f"| Quality (higher) | {quality_wins['kiro-default']} | {quality_wins['kiro-team']} | {quality_wins.get('tie', 0)} |",
+        "| Category | kiro-default | kiro-team | Tie | No data |",
+        "|----------|--------------|-----------|-----|---------|",
+        row("Credits (fewer)", credit_wins),
+        row("Time (faster)", time_wins),
+        row("Quality (higher)", quality_wins),
         "",
-        f"**Hypothesis accuracy:** {hypothesis_correct}/{total} ({hypothesis_correct/total*100:.0f}% correct)",
+        f"**Hypothesis accuracy:** {accuracy}",
         "",
         "---",
         "",
         "## Per-Scenario Results",
         "",
     ])
-    
+
     for r in results:
         scenario = r["metrics"].get("scenario", {})
         default = r["metrics"].get("kiro_default", {})
         team = r["metrics"].get("kiro_team", {})
         comp = r["metrics"].get("comparison", {})
         acc = r.get("acceptance", {})
-        
+
         lines.extend([
             f"### {scenario.get('name', r['scenario_id'])}",
             "",
@@ -110,56 +134,46 @@ def generate_report(results: list) -> str:
             "",
             "| Metric | kiro-default | kiro-team | Winner |",
             "|--------|--------------|-----------|--------|",
-            f"| Tokens | {default.get('tokens_total', 'N/A')} | {team.get('tokens_total', 'N/A')} | {comp.get('token_winner', 'N/A')} |",
-            f"| Time | {default.get('duration_seconds', 'N/A')}s | {team.get('duration_seconds', 'N/A')}s | {comp.get('time_winner', 'N/A')} |",
-            f"| Quality | {acc.get('kiro_default', {}).get('score', 'N/A'):.0f}% | {acc.get('kiro_team', {}).get('score', 'N/A'):.0f}% | {acc.get('quality_winner', 'N/A')} |",
+            f"| Credits | {fmt_num(default.get('credits'))} | {fmt_num(team.get('credits'))} | {comp.get('credits_winner', 'n/a')} |",
+            f"| Time | {fmt_num(default.get('duration_seconds'), 's')} | {fmt_num(team.get('duration_seconds'), 's')} | {comp.get('time_winner', 'n/a')} |",
+            f"| Quality | {fmt_pct(acc.get('kiro_default', {}).get('score'))} | {fmt_pct(acc.get('kiro_team', {}).get('score'))} | {acc.get('quality_winner', 'n/a')} |",
             "",
         ])
-        
-        # Token ratio analysis
-        ratio = comp.get("token_ratio", 0)
-        if ratio > 1.5:
-            lines.append(f"⚠️ kiro-team used {ratio:.1f}x more tokens")
-        elif ratio < 0.75:
-            lines.append(f"✅ kiro-team used {1/ratio:.1f}x fewer tokens")
-        
+
+        ratio = comp.get("credits_ratio")
+        if isinstance(ratio, (int, float)) and ratio > 0:
+            if ratio > 1.5:
+                lines.append(f"⚠️ kiro-team used {ratio:.1f}x more credits")
+            elif ratio < 0.75:
+                lines.append(f"✅ kiro-team used {1 / ratio:.1f}x fewer credits")
+        for warning in r["metrics"].get("warnings", []):
+            lines.append(f"- Warning: {warning}")
+
         lines.append("")
-    
-    # Conclusions
+
     lines.extend([
         "---",
         "",
         "## Conclusions",
         "",
     ])
-    
-    # Determine overall patterns
-    if token_wins["kiro-team"] > token_wins["kiro-default"]:
-        lines.append("- **Tokens:** kiro-team generally more efficient")
-    else:
-        lines.append("- **Tokens:** kiro-default generally more efficient (less orchestration overhead)")
-    
-    if quality_wins["kiro-team"] > quality_wins["kiro-default"]:
-        lines.append("- **Quality:** kiro-team produces better results on complex tasks")
-    else:
-        lines.append("- **Quality:** kiro-default sufficient for most tasks")
-    
-    lines.extend([
-        "",
-        "### Recommendations",
-        "",
-        "Use **kiro-default** when:",
-        "- Task is simple and well-defined",
-        "- Token budget is tight",
-        "- Speed is priority over thoroughness",
-        "",
-        "Use **kiro-team** when:",
-        "- Task spans multiple files",
-        "- Requirements are ambiguous",
-        "- Validation/verification is critical",
-        "- Task benefits from specialized agents",
-    ])
-    
+
+    def verdict(label, wins, team_text, default_text):
+        if wins["kiro-team"] + wins["kiro-default"] == 0:
+            return f"- **{label}:** not enough data"
+        if wins["kiro-team"] > wins["kiro-default"]:
+            return f"- **{label}:** {team_text}"
+        if wins["kiro-default"] > wins["kiro-team"]:
+            return f"- **{label}:** {default_text}"
+        return f"- **{label}:** no clear winner"
+
+    lines.append(verdict("Credits", credit_wins, "kiro-team used fewer in most scenarios",
+                         "kiro-default used fewer in most scenarios"))
+    lines.append(verdict("Time", time_wins, "kiro-team was faster in most scenarios",
+                         "kiro-default was faster in most scenarios"))
+    lines.append(verdict("Quality", quality_wins, "kiro-team scored higher in most scenarios",
+                         "kiro-default scored higher in most scenarios"))
+
     return "\n".join(lines)
 
 
@@ -171,15 +185,15 @@ def main():
     results_dir = Path(args.results_dir)
     
     if not results_dir.exists():
-        print(f"Results directory not found: {results_dir}")
-        return
-    
+        print(f"Results directory not found: {results_dir}", file=sys.stderr)
+        sys.exit(1)
+
     results = load_results(results_dir)
-    
+
     if not results:
-        print("No results found")
-        return
-    
+        print("No results found", file=sys.stderr)
+        sys.exit(1)
+
     report = generate_report(results)
     print(report)
 

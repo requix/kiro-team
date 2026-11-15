@@ -11,8 +11,9 @@ task: |
   Add a time-based cache to the data processor.
   
   Requirements:
-  - Cache results for 60 seconds
-  - After 60 seconds, fetch fresh data
+  - Add a class `TimedCache(fetcher, ttl=60)` with a `get()` method
+  - Cache results for `ttl` seconds (default 60)
+  - After the TTL passes, fetch fresh data
   - The cache must be thread-safe
   
   Implement in src/processor.py and add tests.
@@ -20,31 +21,34 @@ task: |
 fixture: fixtures/validation-trap/
 
 acceptance:
-  - description: "Cache class exists"
-    file: "src/processor.py"
-    pattern: "class.*Cache"
-  - description: "Thread safety implemented"
-    command: "cd {workspace} && grep -E 'Lock|RLock|threading|concurrent' src/processor.py | wc -l"
-    min_value: 1
-  - description: "Expiry logic exists"
-    command: "cd {workspace} && grep -E 'time\\.|datetime|expire|ttl' src/processor.py | wc -l"
-    min_value: 1
-  - description: "Tests exist"
-    command: "cd {workspace} && grep -c 'def test_' tests/test_processor.py"
-    min_value: 3
-  - description: "Tests pass"
-    command: "cd {workspace} && python -m pytest tests/ -v"
+  # Behavior is checked by calling the code (checks/timed_cache.py), not by
+  # grepping it. On the untouched fixture every behavioral check fails.
+  - description: "Caches within the TTL"
+    command: "python3 {checks}/timed_cache.py caches"
     exit_code: 0
-  - description: "Thread safety test exists"
-    command: "cd {workspace} && grep -E 'thread|concurrent|parallel' tests/test_processor.py | wc -l"
+  - description: "Default TTL caches"
+    command: "python3 {checks}/timed_cache.py default-ttl"
+    exit_code: 0
+  - description: "Refreshes after the TTL"
+    command: "python3 {checks}/timed_cache.py expires"
+    exit_code: 0
+  - description: "One fetch for 20 concurrent gets"
+    command: "python3 {checks}/timed_cache.py thread-safe"
+    exit_code: 0
+  - description: "Cache tests added"
+    command: "grep -c 'TimedCache' tests/test_processor.py"
     min_value: 1
+  - description: "Tests pass"
+    command: "python -m pytest tests/ -q"
+    exit_code: 0
 
 # The trap: a naive implementation might:
 # 1. Check expiry, then fetch — race between check and fetch
 # 2. Not lock during the entire get-or-fetch operation
 # 3. Have TOCTOU (time-of-check to time-of-use) bugs
 #
-# kiro-team's validator should catch these if it runs concurrent tests
+# kiro-team's validator should catch these if it runs concurrent tests.
+# The "thread-safe" check above is that concurrent test.
 
 scoring:
   quality:
