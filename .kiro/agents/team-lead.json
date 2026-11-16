@@ -10,6 +10,6 @@
     }
   },
   "resources": ["file://specs/**/*.md", "file://README.md", "file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4",
+  "model": "claude-sonnet-4.5",
   "welcomeMessage": "Team Lead ready. Describe what you want to build and I'll orchestrate the team."
 }

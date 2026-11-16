@@ -45,12 +45,11 @@
     "model": {
       "type": "string",
       "enum": [
-        "claude-sonnet-4",
-        "claude-opus-4",
-        "claude-haiku-4",
-        "claude-3-5-sonnet",
-        "claude-3-opus",
-        "claude-3-haiku"
+        "auto",
+        "claude-sonnet-4.6",
+        "claude-sonnet-4.5",
+        "claude-opus-4.5",
+        "claude-haiku-4.5"
       ],
       "description": "Model to use for this agent"
     },

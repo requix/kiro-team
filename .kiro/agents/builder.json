@@ -5,6 +5,6 @@
   "tools": ["fs_read", "fs_write", "execute_bash"],
   "allowedTools": ["fs_read", "fs_write", "execute_bash"],
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4",
+  "model": "claude-sonnet-4.5",
   "welcomeMessage": "Builder ready. What task should I execute?"
 }
