@@ -1,10 +1,25 @@
 # Kiro Team: Multi-Agent Orchestration for Kiro CLI
 
-A team orchestration system that enables multiple AI agents to collaborate on complex tasks inside [Kiro CLI](https://kiro.dev).
+A working multi-agent system you can copy into your project and run. Four specialized agents — team-lead, builder, validator, documenter — coordinate through a shared plan to build features.
+
+This is also a reference implementation. If you want to learn how custom agents work in Kiro CLI, how to wire up agent-to-agent communication, or how to build your own orchestration patterns, this repo shows one complete approach.
+
+## Why This Exists
+
+Three reasons to look at kiro-team:
+
+**1. Production use on complex tasks.** When a task touches multiple files and needs validation, a validator checks the builder's work before it lands. The overhead is real: early runs took roughly 1.7-2.1x the wall-clock time of single-agent mode. Whether the validator catches enough bugs to pay for that is what the comparative evals are for.
+
+**2. Learning how agents work.** Each agent config is a JSON file plus a markdown prompt. The team-lead spawns subagents, passes them instructions, and receives results back. If you want to build your own multi-agent system in Kiro CLI, this is a working example to dissect.
+
+**3. A place to experiment.** The repo includes:
+- **Worktree isolation** — each spec runs in its own git worktree, so you can run two specs in parallel without conflicts
+- **Behavioral evals** — 14 scenarios that test agent judgment, including adversarial cases
+- **Comparative evals** — measure kiro-team vs kiro-default on time, tokens, and quality
 
 ## How It Works
 
-A team-lead agent reads a plan, delegates tasks to specialized subagents (builders, validators, and a documenter), and tracks progress. The team-lead is the central coordinator — subagents execute their assigned work and report results back.
+A team-lead agent reads a plan, delegates tasks to specialized subagents, and tracks progress. Subagents do their assigned work and report back.
 
 ```
 You ──→ @plan-with-team Build a REST API...
@@ -732,6 +747,41 @@ If your agent config includes unavailable tools, they'll be silently unavailable
   ```
 
 ## Agent Validation & Evaluation
+
+### Comparative Evaluation (kiro-team vs kiro-default)
+
+Compare when multi-agent orchestration outperforms standard single-agent mode:
+
+```bash
+cd evals/comparative
+
+# Run all five scenarios and write results/comparison-report.md
+bash runners/run-comparison.sh --all
+
+# Or run one scenario
+bash runners/run-comparison.sh scenarios/simple-bugfix.yaml
+```
+
+Scenarios: `simple-bugfix`, `multi-file-refactor`, `ambiguous-feature`, `validation-trap`, `validator-feedback`.
+
+Results go to `evals/comparative/results/<scenario>/` (gitignored): `metrics.json` (time, credits, model, exit codes), `acceptance.json` (quality checks), and each arm's `changes.patch`. Quality checks run the code where they can, so an untouched fixture scores at most 33%. kiro-team runs with its full setup (agents, steering, worktree scripts) and gets the task as a plan in `specs/`. Both arms use the same model. See [evals/comparative/README.md](evals/comparative/README.md) for the details.
+
+**Findings so far:** Early runs put kiro-team at roughly 1.7-2.1x the wall-clock time of kiro-default. Treat that as anecdotal: it comes from single runs, and the quality scores from those runs are withdrawn because the old checks also passed on untouched code. Rerun with the current harness before quoting numbers.
+
+## When to Use kiro-team
+
+**Use it when:**
+- The task touches multiple files with dependencies between them
+- You are working in an unfamiliar codebase and want a second check
+- The change is high-stakes and you would manually review it anyway
+- You want to learn how multi-agent orchestration works
+
+**Skip it when:**
+- The task is a single-file fix with clear requirements
+- You are running in CI/CD or another automated context (kiro-team may ask clarifying questions)
+- Speed matters more than double-checking
+
+One trade-off to expect: on a vague task, kiro-team may stop and ask clarifying questions where kiro-default picks reasonable defaults and ships. With no human to answer, as in an automated eval, that costs kiro-team. In an interactive session, the questions might save you a rework cycle. The `ambiguous-feature` scenario is there to measure this.
 
 ### Static Validation
 

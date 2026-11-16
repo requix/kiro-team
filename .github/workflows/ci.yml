@@ -29,3 +29,21 @@ jobs:
           echo "Running shellcheck on scripts/..."
           shellcheck scripts/*.sh
           echo "✓ All shell scripts pass"
+
+      - name: Lint comparative eval runners
+        run: shellcheck -x evals/comparative/runners/*.sh
+
+  eval-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pyyaml pytest
+
+      - name: Test comparative eval harness
+        run: python -m pytest evals/comparative/tests -q

@@ -1,0 +1,34 @@
+# Comparative Eval: Simple Bug Fix
+# Hypothesis: kiro-default wins (less overhead for trivial task)
+
+id: simple-bugfix
+name: "Simple Bug Fix"
+description: "Fix an off-by-one error in a single file"
+complexity: low
+expected_winner: kiro-default
+hypothesis_metric: time  # which winner the hypothesis is about: time, credits or quality
+
+task: |
+  Fix the off-by-one error in src/counter.py.
+  
+  The `count_items()` function returns n+1 instead of n.
+  Fix it so the test passes.
+
+fixture: fixtures/simple-bugfix/
+
+acceptance:
+  - description: "Bug is fixed (no +1)"
+    file: src/counter.py
+    not_pattern: "return len\\(items\\) \\+ 1"
+  - description: "Tests pass"
+    command: "python -m pytest tests/ -v"
+    exit_code: 0
+  - description: "No unrelated changes"
+    # eval-base is the tag the runner puts on the fixture's initial commit.
+    # Counts changed code files, committed or not. Only src/counter.py should change.
+    command: "git diff --name-only eval-base -- src tests | wc -l"
+    max_value: 1
+
+metrics_focus:
+  - tokens
+  - time

@@ -1,0 +1,56 @@
+# Comparative Eval: Validator Feedback Loop
+# Hypothesis: kiro-team wins because validator catches edge case the builder misses
+
+id: validator-feedback
+name: "Validator Feedback - Edge Case Trap"
+description: "Implement pagination with a subtle edge case. First implementation usually fails validation."
+complexity: high
+expected_winner: kiro-team
+hypothesis_metric: quality  # which winner the hypothesis is about: time, credits or quality
+
+task: |
+  Add pagination to the item list endpoint.
+  
+  Requirements:
+  - A function `paginate(items, page=1, page_size=10)` in src/api.py
+  - page_size parameter (default 10, max 100)
+  - page parameter (1-indexed, default 1)
+  - Return: items, total_count, total_pages, current_page, has_next, has_prev
+  - Handle edge cases: empty list, page beyond range, invalid inputs
+  
+  The existing tests must still pass. Add comprehensive pagination tests.
+
+fixture: fixtures/validator-feedback/
+
+acceptance:
+  # Behavior is checked by calling the code (checks/paginate.py), not by
+  # grepping it. On the untouched fixture every behavioral check fails.
+  - description: "Returns pagination metadata"
+    command: "python3 {checks}/paginate.py metadata"
+    exit_code: 0
+  - description: "Page bounds and has_next/has_prev"
+    command: "python3 {checks}/paginate.py page-bounds"
+    exit_code: 0
+  - description: "Defaults and page_size max 100"
+    command: "python3 {checks}/paginate.py defaults-and-max"
+    exit_code: 0
+  - description: "Empty list handled"
+    command: "python3 {checks}/paginate.py empty"
+    exit_code: 0
+  - description: "Out-of-range and invalid input handled"
+    command: "python3 {checks}/paginate.py out-of-range"
+    exit_code: 0
+  - description: "Pagination tests added"
+    command: "grep -c 'paginate' tests/test_api.py"
+    min_value: 1
+  - description: "All tests pass"
+    command: "python -m pytest tests/ -q"
+    exit_code: 0
+
+# The trap: Common mistakes a naive implementation makes:
+# 1. total_pages = ceil(total/page_size) gives 0 for empty list, but page 1 should still be valid
+# 2. Off-by-one on page bounds (0-indexed vs 1-indexed confusion)
+# 3. has_next/has_prev wrong on boundary pages
+# 4. Not clamping page_size to max 100
+#
+# A validator running tests should catch these and send builder back
