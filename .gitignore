@@ -19,3 +19,7 @@ test-results/
 
 # Eval history (scores over time, local only)
 .kiro/evals/history/
+
+# Python caches
+__pycache__/
+*.pyc
