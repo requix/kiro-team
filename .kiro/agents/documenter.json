@@ -5,6 +5,6 @@
   "tools": ["fs_read", "fs_write", "glob"],
   "allowedTools": ["fs_read", "fs_write", "glob"],
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4",
+  "model": "claude-sonnet-4.5",
   "welcomeMessage": "Documenter ready. What should I document?"
 }

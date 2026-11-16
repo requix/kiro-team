@@ -10,6 +10,6 @@
     }
   },
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4",
+  "model": "claude-sonnet-4.5",
   "welcomeMessage": "Validator ready. What should I verify?"
 }

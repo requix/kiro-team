@@ -278,7 +278,7 @@ Each agent is defined by a JSON config + a markdown prompt:
     }
   },
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4.5"
 }
 ```
 
@@ -297,7 +297,7 @@ Key points:
   "tools": ["fs_read", "fs_write", "execute_bash"],
   "allowedTools": ["fs_read", "fs_write", "execute_bash"],
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4.5"
 }
 ```
 
@@ -315,7 +315,7 @@ Key points:
     "execute_bash": { "autoAllowReadonly": true }
   },
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4.5"
 }
 ```
 
@@ -332,7 +332,7 @@ Key points:
   "tools": ["fs_read", "fs_write"],
   "allowedTools": ["fs_read", "fs_write"],
   "resources": ["file://.kiro/steering/**/*.md"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4.5"
 }
 ```
 
@@ -621,7 +621,7 @@ Create two files in `.kiro/agents/`:
   "description": "Writes and runs tests for completed features.",
   "prompt": "file://./tester-prompt.md",
   "tools": ["read", "write", "shell"],
-  "model": "claude-sonnet-4"
+  "model": "claude-sonnet-4.5"
 }
 ```
 
@@ -654,7 +654,7 @@ Then update team-lead.json:
 Each agent can use a different model:
 
 ```json
-"model": "claude-sonnet-4"
+"model": "claude-sonnet-4.5"
 ```
 
 ### Modifying the Plan Format
