@@ -19,6 +19,8 @@ Answer: "When is kiro-team worth the orchestration overhead?"
 
 kiro-cli bills in credits and usually does not report token counts, so credits are the cost metric. A metric with no data is recorded as `null` and the comparison says `n/a`. It never counts as 0, so a missing log can't look like a cheap run.
 
+Some logins get no credit data at all. With kiro-cli 2.27 and an IAM Identity Center login, `stream-json` has no `meteringUsage` events, and the session file shows empty metering. Then credits are `n/a` and each run gets a "no cost data" warning; compare on time and quality.
+
 ## Structure
 
 ```

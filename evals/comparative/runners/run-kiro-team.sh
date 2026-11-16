@@ -100,7 +100,6 @@ MODEL_ARGS=()
 
 # team-lead orchestrates builder/validator/documenter as needed
 # --trust-all-tools allows autonomous operation
-# --trust-workspace trusts the workspace agents
 # --output-format stream-json writes ACP events as JSON Lines (implies --no-interactive)
 cd "$WORKSPACE"
 status=0
@@ -108,7 +107,6 @@ RUN_MODEL="$MODEL" run_kiro "$LOG_DIR" \
     --agent team-lead \
     ${MODEL_ARGS[@]+"${MODEL_ARGS[@]}"} \
     --trust-all-tools \
-    --trust-workspace \
     --no-interactive \
     --output-format stream-json \
     "$TASK" || status=$?

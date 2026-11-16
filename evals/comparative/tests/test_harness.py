@@ -333,15 +333,23 @@ def test_report_exits_nonzero_without_results(tmp_path):
 
 
 def _fake_kiro(bin_dir: Path, exit_code: int) -> None:
-    """A kiro-cli stand-in. It records its args and workspace listing in
-    $FAKE_KIRO_SEEN/<agent>.txt, then prints one credit event."""
+    """A kiro-cli stand-in. Like the real one (2.27), it exits 2 on a flag
+    `kiro-cli chat` does not know. Otherwise it records its args and workspace
+    listing in $FAKE_KIRO_SEEN/<agent>.txt, then prints one credit event."""
     bin_dir.mkdir()
     script = bin_dir / "kiro-cli"
     script.write_text(textwrap.dedent(f"""\
         #!/bin/bash
         agent=""
         prev=""
-        for a in "$@"; do [[ "$prev" == "--agent" ]] && agent="$a"; prev="$a"; done
+        for a in "$@"; do
+            case "$a" in
+                --agent|--model|--output-format|--trust-all-tools|--no-interactive) ;;
+                --*) echo "error: unexpected argument '$a' found" >&2; exit 2 ;;
+            esac
+            [[ "$prev" == "--agent" ]] && agent="$a"
+            prev="$a"
+        done
         {{ printf '%s\\n' "$@"; echo "---"; find . -path ./.git -prune -o -type f -print | sort; }} \\
             > "$FAKE_KIRO_SEEN/$agent.txt"
         echo '{{"params":{{"meteringUsage":[{{"unit":"credit","value":0.5}}]}}}}'
